@@ -13,6 +13,67 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		BFDE3A0F2FE09F7900399CA5 /* project.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = project.md; sourceTree = "<group>"; };
+		BFDE3A112FE09F7900399CA5 /* _index.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = _index.md; sourceTree = "<group>"; };
+		BFDE3A122FE09F7900399CA5 /* actors.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = actors.md; sourceTree = "<group>"; };
+		BFDE3A132FE09F7900399CA5 /* async-algorithms.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "async-algorithms.md"; sourceTree = "<group>"; };
+		BFDE3A142FE09F7900399CA5 /* async-await-basics.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "async-await-basics.md"; sourceTree = "<group>"; };
+		BFDE3A152FE09F7900399CA5 /* async-sequences.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "async-sequences.md"; sourceTree = "<group>"; };
+		BFDE3A162FE09F7900399CA5 /* core-data.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "core-data.md"; sourceTree = "<group>"; };
+		BFDE3A172FE09F7900399CA5 /* glossary.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = glossary.md; sourceTree = "<group>"; };
+		BFDE3A182FE09F7900399CA5 /* linting.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = linting.md; sourceTree = "<group>"; };
+		BFDE3A192FE09F7900399CA5 /* memory-management.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "memory-management.md"; sourceTree = "<group>"; };
+		BFDE3A1A2FE09F7900399CA5 /* migration.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = migration.md; sourceTree = "<group>"; };
+		BFDE3A1B2FE09F7900399CA5 /* performance.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = performance.md; sourceTree = "<group>"; };
+		BFDE3A1C2FE09F7900399CA5 /* sendable.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = sendable.md; sourceTree = "<group>"; };
+		BFDE3A1D2FE09F7900399CA5 /* tasks.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = tasks.md; sourceTree = "<group>"; };
+		BFDE3A1E2FE09F7900399CA5 /* testing.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = testing.md; sourceTree = "<group>"; };
+		BFDE3A1F2FE09F7900399CA5 /* threading.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = threading.md; sourceTree = "<group>"; };
+		BFDE3A212FE09F7900399CA5 /* SKILL.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SKILL.md; sourceTree = "<group>"; };
+		BFDE3A232FE09F7900399CA5 /* accessibility-patterns.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "accessibility-patterns.md"; sourceTree = "<group>"; };
+		BFDE3A242FE09F7900399CA5 /* animation-advanced.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "animation-advanced.md"; sourceTree = "<group>"; };
+		BFDE3A252FE09F7900399CA5 /* animation-basics.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "animation-basics.md"; sourceTree = "<group>"; };
+		BFDE3A262FE09F7900399CA5 /* animation-transitions.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "animation-transitions.md"; sourceTree = "<group>"; };
+		BFDE3A272FE09F7900399CA5 /* charts.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = charts.md; sourceTree = "<group>"; };
+		BFDE3A282FE09F7900399CA5 /* charts-accessibility.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "charts-accessibility.md"; sourceTree = "<group>"; };
+		BFDE3A292FE09F7900399CA5 /* focus-patterns.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "focus-patterns.md"; sourceTree = "<group>"; };
+		BFDE3A2A2FE09F7900399CA5 /* image-optimization.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "image-optimization.md"; sourceTree = "<group>"; };
+		BFDE3A2B2FE09F7900399CA5 /* latest-apis.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "latest-apis.md"; sourceTree = "<group>"; };
+		BFDE3A2C2FE09F7900399CA5 /* layout-best-practices.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "layout-best-practices.md"; sourceTree = "<group>"; };
+		BFDE3A2D2FE09F7900399CA5 /* liquid-glass.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "liquid-glass.md"; sourceTree = "<group>"; };
+		BFDE3A2E2FE09F7900399CA5 /* list-patterns.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "list-patterns.md"; sourceTree = "<group>"; };
+		BFDE3A2F2FE09F7900399CA5 /* macos-scenes.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "macos-scenes.md"; sourceTree = "<group>"; };
+		BFDE3A302FE09F7900399CA5 /* macos-views.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "macos-views.md"; sourceTree = "<group>"; };
+		BFDE3A312FE09F7900399CA5 /* macos-window-styling.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "macos-window-styling.md"; sourceTree = "<group>"; };
+		BFDE3A322FE09F7900399CA5 /* performance-patterns.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "performance-patterns.md"; sourceTree = "<group>"; };
+		BFDE3A332FE09F7900399CA5 /* previews.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = previews.md; sourceTree = "<group>"; };
+		BFDE3A342FE09F7900399CA5 /* scroll-patterns.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "scroll-patterns.md"; sourceTree = "<group>"; };
+		BFDE3A352FE09F7900399CA5 /* sheet-navigation-patterns.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "sheet-navigation-patterns.md"; sourceTree = "<group>"; };
+		BFDE3A362FE09F7900399CA5 /* state-management.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "state-management.md"; sourceTree = "<group>"; };
+		BFDE3A372FE09F7900399CA5 /* text-patterns.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "text-patterns.md"; sourceTree = "<group>"; };
+		BFDE3A382FE09F7900399CA5 /* trace-analysis.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "trace-analysis.md"; sourceTree = "<group>"; };
+		BFDE3A392FE09F7900399CA5 /* trace-recording.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "trace-recording.md"; sourceTree = "<group>"; };
+		BFDE3A3A2FE09F7900399CA5 /* view-structure.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "view-structure.md"; sourceTree = "<group>"; };
+		BFDE3A3C2FE09F7900399CA5 /* __init__.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = __init__.py; sourceTree = "<group>"; };
+		BFDE3A3D2FE09F7900399CA5 /* causes.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = causes.py; sourceTree = "<group>"; };
+		BFDE3A3E2FE09F7900399CA5 /* correlate.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = correlate.py; sourceTree = "<group>"; };
+		BFDE3A3F2FE09F7900399CA5 /* events.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = events.py; sourceTree = "<group>"; };
+		BFDE3A402FE09F7900399CA5 /* hangs.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = hangs.py; sourceTree = "<group>"; };
+		BFDE3A412FE09F7900399CA5 /* hitches.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = hitches.py; sourceTree = "<group>"; };
+		BFDE3A422FE09F7900399CA5 /* summary.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = summary.py; sourceTree = "<group>"; };
+		BFDE3A432FE09F7900399CA5 /* swiftui.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = swiftui.py; sourceTree = "<group>"; };
+		BFDE3A442FE09F7900399CA5 /* time_profiler.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = time_profiler.py; sourceTree = "<group>"; };
+		BFDE3A452FE09F7900399CA5 /* xctrace.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = xctrace.py; sourceTree = "<group>"; };
+		BFDE3A462FE09F7900399CA5 /* xml_utils.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = xml_utils.py; sourceTree = "<group>"; };
+		BFDE3A482FE09F7900399CA5 /* analyze_trace.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = analyze_trace.py; sourceTree = "<group>"; };
+		BFDE3A492FE09F7900399CA5 /* record_trace.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = record_trace.py; sourceTree = "<group>"; };
+		BFDE3A4B2FE09F7900399CA5 /* SKILL.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SKILL.md; sourceTree = "<group>"; };
+		BFDE3A4D2FE09F7900399CA5 /* xcode_spm_setup */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = xcode_spm_setup; sourceTree = "<group>"; };
+		BFDE3A4F2FE09F7900399CA5 /* SKILL.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SKILL.md; sourceTree = "<group>"; };
+		BFDE3A522FE09F7900399CA5 /* settings.local.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = settings.local.json; sourceTree = "<group>"; };
+		BFDE3A542FE09F7900399CA5 /* CLAUDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CLAUDE.md; sourceTree = "<group>"; };
+		BFDE3A552FE09F7900399CA5 /* implementation-plan.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "implementation-plan.md"; sourceTree = "<group>"; };
+		BFDE3A562FE09F7900399CA5 /* spec.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = spec.md; sourceTree = "<group>"; };
 		BFDEBA112FE05A3D00399CA5 /* Snip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Snip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -38,9 +99,166 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		BFDE3A102FE09F7900399CA5 /* rules */ = {
+			isa = PBXGroup;
+			children = (
+				BFDE3A0F2FE09F7900399CA5 /* project.md */,
+			);
+			path = rules;
+			sourceTree = "<group>";
+		};
+		BFDE3A202FE09F7900399CA5 /* references */ = {
+			isa = PBXGroup;
+			children = (
+				BFDE3A112FE09F7900399CA5 /* _index.md */,
+				BFDE3A122FE09F7900399CA5 /* actors.md */,
+				BFDE3A132FE09F7900399CA5 /* async-algorithms.md */,
+				BFDE3A142FE09F7900399CA5 /* async-await-basics.md */,
+				BFDE3A152FE09F7900399CA5 /* async-sequences.md */,
+				BFDE3A162FE09F7900399CA5 /* core-data.md */,
+				BFDE3A172FE09F7900399CA5 /* glossary.md */,
+				BFDE3A182FE09F7900399CA5 /* linting.md */,
+				BFDE3A192FE09F7900399CA5 /* memory-management.md */,
+				BFDE3A1A2FE09F7900399CA5 /* migration.md */,
+				BFDE3A1B2FE09F7900399CA5 /* performance.md */,
+				BFDE3A1C2FE09F7900399CA5 /* sendable.md */,
+				BFDE3A1D2FE09F7900399CA5 /* tasks.md */,
+				BFDE3A1E2FE09F7900399CA5 /* testing.md */,
+				BFDE3A1F2FE09F7900399CA5 /* threading.md */,
+			);
+			path = references;
+			sourceTree = "<group>";
+		};
+		BFDE3A222FE09F7900399CA5 /* swift-concurrency */ = {
+			isa = PBXGroup;
+			children = (
+				BFDE3A202FE09F7900399CA5 /* references */,
+				BFDE3A212FE09F7900399CA5 /* SKILL.md */,
+			);
+			path = "swift-concurrency";
+			sourceTree = "<group>";
+		};
+		BFDE3A3B2FE09F7900399CA5 /* references */ = {
+			isa = PBXGroup;
+			children = (
+				BFDE3A232FE09F7900399CA5 /* accessibility-patterns.md */,
+				BFDE3A242FE09F7900399CA5 /* animation-advanced.md */,
+				BFDE3A252FE09F7900399CA5 /* animation-basics.md */,
+				BFDE3A262FE09F7900399CA5 /* animation-transitions.md */,
+				BFDE3A272FE09F7900399CA5 /* charts.md */,
+				BFDE3A282FE09F7900399CA5 /* charts-accessibility.md */,
+				BFDE3A292FE09F7900399CA5 /* focus-patterns.md */,
+				BFDE3A2A2FE09F7900399CA5 /* image-optimization.md */,
+				BFDE3A2B2FE09F7900399CA5 /* latest-apis.md */,
+				BFDE3A2C2FE09F7900399CA5 /* layout-best-practices.md */,
+				BFDE3A2D2FE09F7900399CA5 /* liquid-glass.md */,
+				BFDE3A2E2FE09F7900399CA5 /* list-patterns.md */,
+				BFDE3A2F2FE09F7900399CA5 /* macos-scenes.md */,
+				BFDE3A302FE09F7900399CA5 /* macos-views.md */,
+				BFDE3A312FE09F7900399CA5 /* macos-window-styling.md */,
+				BFDE3A322FE09F7900399CA5 /* performance-patterns.md */,
+				BFDE3A332FE09F7900399CA5 /* previews.md */,
+				BFDE3A342FE09F7900399CA5 /* scroll-patterns.md */,
+				BFDE3A352FE09F7900399CA5 /* sheet-navigation-patterns.md */,
+				BFDE3A362FE09F7900399CA5 /* state-management.md */,
+				BFDE3A372FE09F7900399CA5 /* text-patterns.md */,
+				BFDE3A382FE09F7900399CA5 /* trace-analysis.md */,
+				BFDE3A392FE09F7900399CA5 /* trace-recording.md */,
+				BFDE3A3A2FE09F7900399CA5 /* view-structure.md */,
+			);
+			path = references;
+			sourceTree = "<group>";
+		};
+		BFDE3A472FE09F7900399CA5 /* instruments_parser */ = {
+			isa = PBXGroup;
+			children = (
+				BFDE3A3C2FE09F7900399CA5 /* __init__.py */,
+				BFDE3A3D2FE09F7900399CA5 /* causes.py */,
+				BFDE3A3E2FE09F7900399CA5 /* correlate.py */,
+				BFDE3A3F2FE09F7900399CA5 /* events.py */,
+				BFDE3A402FE09F7900399CA5 /* hangs.py */,
+				BFDE3A412FE09F7900399CA5 /* hitches.py */,
+				BFDE3A422FE09F7900399CA5 /* summary.py */,
+				BFDE3A432FE09F7900399CA5 /* swiftui.py */,
+				BFDE3A442FE09F7900399CA5 /* time_profiler.py */,
+				BFDE3A452FE09F7900399CA5 /* xctrace.py */,
+				BFDE3A462FE09F7900399CA5 /* xml_utils.py */,
+			);
+			path = instruments_parser;
+			sourceTree = "<group>";
+		};
+		BFDE3A4A2FE09F7900399CA5 /* scripts */ = {
+			isa = PBXGroup;
+			children = (
+				BFDE3A472FE09F7900399CA5 /* instruments_parser */,
+				BFDE3A482FE09F7900399CA5 /* analyze_trace.py */,
+				BFDE3A492FE09F7900399CA5 /* record_trace.py */,
+			);
+			path = scripts;
+			sourceTree = "<group>";
+		};
+		BFDE3A4C2FE09F7900399CA5 /* swiftui-expert-skill */ = {
+			isa = PBXGroup;
+			children = (
+				BFDE3A3B2FE09F7900399CA5 /* references */,
+				BFDE3A4A2FE09F7900399CA5 /* scripts */,
+				BFDE3A4B2FE09F7900399CA5 /* SKILL.md */,
+			);
+			path = "swiftui-expert-skill";
+			sourceTree = "<group>";
+		};
+		BFDE3A4E2FE09F7900399CA5 /* scripts */ = {
+			isa = PBXGroup;
+			children = (
+				BFDE3A4D2FE09F7900399CA5 /* xcode_spm_setup */,
+			);
+			path = scripts;
+			sourceTree = "<group>";
+		};
+		BFDE3A502FE09F7900399CA5 /* xcode-project-setup */ = {
+			isa = PBXGroup;
+			children = (
+				BFDE3A4E2FE09F7900399CA5 /* scripts */,
+				BFDE3A4F2FE09F7900399CA5 /* SKILL.md */,
+			);
+			path = "xcode-project-setup";
+			sourceTree = "<group>";
+		};
+		BFDE3A512FE09F7900399CA5 /* skills */ = {
+			isa = PBXGroup;
+			children = (
+				BFDE3A222FE09F7900399CA5 /* swift-concurrency */,
+				BFDE3A4C2FE09F7900399CA5 /* swiftui-expert-skill */,
+				BFDE3A502FE09F7900399CA5 /* xcode-project-setup */,
+			);
+			path = skills;
+			sourceTree = "<group>";
+		};
+		BFDE3A532FE09F7900399CA5 /* .claude */ = {
+			isa = PBXGroup;
+			children = (
+				BFDE3A102FE09F7900399CA5 /* rules */,
+				BFDE3A512FE09F7900399CA5 /* skills */,
+				BFDE3A522FE09F7900399CA5 /* settings.local.json */,
+			);
+			path = .claude;
+			sourceTree = "<group>";
+		};
+		BFDE3A572FE09F7900399CA5 /* docs */ = {
+			isa = PBXGroup;
+			children = (
+				BFDE3A552FE09F7900399CA5 /* implementation-plan.md */,
+				BFDE3A562FE09F7900399CA5 /* spec.md */,
+			);
+			path = docs;
+			sourceTree = "<group>";
+		};
 		BFDEBA082FE05A3C00399CA5 = {
 			isa = PBXGroup;
 			children = (
+				BFDE3A532FE09F7900399CA5 /* .claude */,
+				BFDE3A542FE09F7900399CA5 /* CLAUDE.md */,
+				BFDE3A572FE09F7900399CA5 /* docs */,
 				BFDEBA132FE05A3D00399CA5 /* Snip/Sources/SnipApp */,
 				BFDEBA122FE05A3D00399CA5 /* Products */,
 			);
