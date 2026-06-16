@@ -60,7 +60,7 @@ public final class StorageStack: Sendable {
         try config.save(appState, to: directories.appStateURL)
     }
 
-    // MARK: - Snippet
+    // MARK: - Single-snippet bootstrap (M1–M3 compatibility)
 
     /// Bootstraps a default snippet on first launch, or loads the existing active
     /// snippet. Returns the snippet and its current text content.
@@ -74,6 +74,35 @@ public final class StorageStack: Sendable {
     public func saveEditorContent(_ text: String, for doc: EditorDocument) throws {
         try content.write(text, relativePath: doc.contentFilePath)
         try snippets.touchEditorDocument(id: doc.id, at: Date())
+    }
+
+    // MARK: - Multi-snippet operations
+
+    /// Returns all non-deleted snippets ordered pinned-first, newest-first.
+    public func listSnippets() throws -> [Snippet] {
+        try snippets.listSnippets()
+    }
+
+    /// Creates a new snippet with an auto-generated title and an empty content file.
+    public func createSnippet() throws -> Snippet {
+        let snippet = try snippets.insertNewSnippet()
+        try content.write("", relativePath: snippet.mainEditor.contentFilePath)
+        return snippet
+    }
+
+    /// Soft-deletes a snippet into the recovery queue.
+    public func deleteSnippet(id: UUID, gracePeriodDays: Int = 30) throws {
+        try snippets.softDeleteSnippet(id: id, gracePeriodDays: gracePeriodDays, at: Date())
+    }
+
+    /// Toggles the pinned state of a snippet, which affects list ordering.
+    public func setSnippetPinned(id: UUID, isPinned: Bool) throws {
+        try snippets.setPinned(id: id, isPinned: isPinned)
+    }
+
+    /// Reads the text content for an editor document.
+    public func loadSnippetContent(for doc: EditorDocument) throws -> String {
+        try content.read(relativePath: doc.contentFilePath)
     }
 
     // MARK: - Restoration

@@ -3,17 +3,62 @@ import SharedModels
 
 struct RootView: View {
     @Environment(AppModel.self) private var model
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     var body: some View {
         @Bindable var model = model
-        SnipEditorView(text: $model.editorText, wordWrap: model.settings.wordWrapEnabled)
-            .frame(minWidth: 520, minHeight: 360)
-            .background(WindowAccessor { model.attach(window: $0) })
-            .overlay(alignment: .bottom) {
-                if let error = model.initializationError {
-                    storageWarning(error)
-                }
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            SidebarView()
+                .navigationSplitViewColumnWidth(min: 160, ideal: 240, max: 400)
+        } detail: {
+            SnipEditorView(text: $model.editorText, wordWrap: model.settings.wordWrapEnabled)
+                .frame(minWidth: 400, minHeight: 300)
+        }
+        .frame(minWidth: 560, minHeight: 360)
+        .background(WindowAccessor { model.attach(window: $0) })
+        .overlay(alignment: .bottom) {
+            if let error = model.initializationError {
+                storageWarning(error)
             }
+        }
+        .onAppear {
+            columnVisibility = model.appState.sidebarVisible ? .all : .detailOnly
+        }
+        .onChange(of: model.appState.sidebarVisible) { _, visible in
+            columnVisibility = visible ? .all : .detailOnly
+        }
+        .onChange(of: columnVisibility) { _, v in
+            model.setSidebarVisible(v != .detailOnly)
+        }
+        .background {
+            keyboardShortcuts
+        }
+    }
+
+    @ViewBuilder
+    private var keyboardShortcuts: some View {
+        Group {
+            Button("") { model.createSnippet() }
+                .keyboardShortcut("n", modifiers: .command)
+            Button("") {
+                if let id = model.currentSnippet?.id { model.deleteSnippet(id) }
+            }
+            .keyboardShortcut(.delete, modifiers: .command)
+            Button("") { model.toggleSidebar() }
+                .keyboardShortcut("b", modifiers: .command)
+            ForEach(1..<10, id: \.self) { index in
+                Button("") {
+                    let i = index - 1
+                    if i < model.snippets.count {
+                        model.selectSnippet(model.snippets[i].id)
+                    }
+                }
+                .keyboardShortcut(KeyEquivalent(Character(String(index))), modifiers: .command)
+            }
+        }
+        .frame(width: 0, height: 0)
+        .opacity(0)
+        .allowsHitTesting(false)
     }
 
     @ViewBuilder

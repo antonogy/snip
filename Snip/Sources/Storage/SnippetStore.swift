@@ -217,11 +217,98 @@ struct SnippetStore: Sendable {
         }
     }
 
+    // MARK: - Multi-snippet operations
+
+    func listSnippets() throws -> [Snippet] {
+        try database.read { db in
+            try fetchAllSnippets(db)
+        }
+    }
+
+    func insertNewSnippet(language: CodeLanguage = .plainText, now: Date = Date()) throws -> Snippet {
+        try database.write { db in
+            let editorID = UUID()
+            let title = try nextTitle(for: language, in: db)
+            let doc = EditorDocument(
+                id: editorID,
+                contentFilePath: ContentStore.fileName(for: editorID),
+                language: language,
+                languageMode: .auto,
+                createdAt: now,
+                updatedAt: now
+            )
+            let snippet = Snippet(
+                id: UUID(),
+                title: title,
+                titleSource: .automatic,
+                mainEditor: doc,
+                isPinned: false,
+                createdAt: now,
+                updatedAt: now
+            )
+            try EditorDocumentRecord(from: doc).insert(db)
+            try SnippetRecord(from: snippet).insert(db)
+            return snippet
+        }
+    }
+
+    func softDeleteSnippet(id: UUID, gracePeriodDays: Int, at date: Date) throws {
+        try database.write { db in
+            guard let sr = try SnippetRecord.fetchOne(db, key: id.uuidString) else { return }
+            let purgeAfter = date.addingTimeInterval(Double(gracePeriodDays) * 24 * 60 * 60)
+            try db.execute(
+                sql: "UPDATE snippets SET deleted_at = ?, updated_at = ? WHERE id = ?",
+                arguments: [date, date, id.uuidString]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO recovery_items (id, snippet_id, title, deleted_at, purge_after)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                arguments: [UUID().uuidString, id.uuidString, sr.title, date, purgeAfter]
+            )
+        }
+    }
+
+    func setPinned(id: UUID, isPinned: Bool, at date: Date = Date()) throws {
+        try database.write { db in
+            try db.execute(
+                sql: "UPDATE snippets SET is_pinned = ?, updated_at = ? WHERE id = ?",
+                arguments: [isPinned, date, id.uuidString]
+            )
+        }
+    }
+
     // MARK: - Private
+
+    private func fetchAllSnippets(_ db: Database) throws -> [Snippet] {
+        let records = try SnippetRecord
+            .filter(sql: "deleted_at IS NULL")
+            .order(Column("is_pinned").desc, Column("updated_at").desc)
+            .fetchAll(db)
+        return try records.compactMap { sr in
+            guard let er = try EditorDocumentRecord.fetchOne(db, key: sr.mainEditorId) else { return nil }
+            return sr.toSnippet(mainEditor: er.toModel())
+        }
+    }
+
+    /// Generates the next auto-title for the given language.
+    /// Counts existing non-deleted snippets whose title starts with the language display name.
+    private func nextTitle(for language: CodeLanguage, in db: Database) throws -> String {
+        let base = language.displayName
+        let count =
+            try Int.fetchOne(
+                db,
+                sql: "SELECT COUNT(*) FROM snippets WHERE title LIKE ? AND deleted_at IS NULL",
+                arguments: ["\(base) %"]
+            ) ?? 0
+        return "\(base) \(count + 1)"
+    }
 
     private func insertDefaultSnippet(_ db: Database) throws -> Snippet {
         let now = Date()
         let editorID = UUID()
+        let title = try nextTitle(for: .plainText, in: db)
         let doc = EditorDocument(
             id: editorID,
             contentFilePath: ContentStore.fileName(for: editorID),
@@ -230,7 +317,7 @@ struct SnippetStore: Sendable {
         )
         let snippet = Snippet(
             id: UUID(),
-            title: "Untitled",
+            title: title,
             mainEditor: doc,
             createdAt: now,
             updatedAt: now

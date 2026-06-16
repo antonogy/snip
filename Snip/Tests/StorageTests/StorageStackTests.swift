@@ -119,7 +119,7 @@ private func makeTempDirectories() throws -> AppDirectories {
 
     #expect(!snippet.id.uuidString.isEmpty)
     #expect(content == "")
-    #expect(snippet.title == "Untitled")
+    #expect(snippet.title == "Plain Text 1")
     #expect(!snippet.mainEditor.contentFilePath.isEmpty)
 }
 
@@ -151,4 +151,80 @@ private func makeTempDirectories() throws -> AppDirectories {
     let relaunched = try StorageStack(directories: AppDirectories(root: directories.root))
     let (_, restoredContent) = try relaunched.loadOrBootstrap()
     #expect(restoredContent == content)
+}
+
+// MARK: - Milestone 4: Multi-snippet tests
+
+@Test func listSnippetsReturnsAll() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    _ = try stack.loadOrBootstrap()      // creates first snippet
+    _ = try stack.createSnippet()        // second
+    _ = try stack.createSnippet()        // third
+
+    let list = try stack.listSnippets()
+    #expect(list.count == 3)
+    // Verify newest-first ordering within unpinned group.
+    #expect(list[0].updatedAt >= list[1].updatedAt)
+    #expect(list[1].updatedAt >= list[2].updatedAt)
+}
+
+@Test func createSnippetGeneratesTitle() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let first = try stack.createSnippet()
+    let second = try stack.createSnippet()
+
+    #expect(first.title == "Plain Text 1")
+    #expect(second.title == "Plain Text 2")
+}
+
+@Test func deleteSnippetHidesFromList() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let snippet = try stack.createSnippet()
+    try stack.deleteSnippet(id: snippet.id)
+
+    let list = try stack.listSnippets()
+    #expect(!list.contains(where: { $0.id == snippet.id }))
+}
+
+@Test func togglePinReordersSnippets() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let first = try stack.createSnippet()
+    _ = try stack.createSnippet()   // second; newer, would be at index 0 unpinned
+
+    // Pin the older snippet — it should jump to the top.
+    try stack.setSnippetPinned(id: first.id, isPinned: true)
+
+    let list = try stack.listSnippets()
+    #expect(list.first?.id == first.id)
+    #expect(list.first?.isPinned == true)
+}
+
+@Test func softDeleteCreatesRecoveryItem() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let snippet = try stack.createSnippet()
+    try stack.deleteSnippet(id: snippet.id)
+
+    let count = try stack.database.read { db in
+        try Int.fetchOne(
+            db,
+            sql: "SELECT COUNT(*) FROM recovery_items WHERE snippet_id = ?",
+            arguments: [snippet.id.uuidString]
+        ) ?? 0
+    }
+    #expect(count == 1)
 }

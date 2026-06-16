@@ -7,17 +7,15 @@ import SharedUtilities
 import Storage
 import SwiftUI
 
-/// Owns persistence and the restored UI state for the lifetime of the app.
-///
-/// Built once at launch. If storage fails to initialize, the app still runs
-/// with default state and surfaces `initializationError` rather than crashing —
-/// the reliability requirement forbids losing the session to a setup error.
 @MainActor
 @Observable
 final class AppModel {
     private(set) var settings: SharedModels.Settings
     private(set) var appState: AppState
     private(set) var initializationError: Error?
+
+    private(set) var snippets: [Snippet] = []
+    private(set) var currentSnippet: Snippet?
 
     var editorText: String = "" {
         didSet {
@@ -28,13 +26,11 @@ final class AppModel {
 
     @ObservationIgnored private let stack: StorageStack?
     @ObservationIgnored private weak var window: NSWindow?
-    @ObservationIgnored private var currentDocument: EditorDocument?
     @ObservationIgnored private var appStateSaveTask: Task<Void, Never>?
     @ObservationIgnored private var editorSaveTask: Task<Void, Never>?
     @ObservationIgnored private var isLoadingContent = false
     @ObservationIgnored private let log = AppLog.make("app.model")
 
-    /// `directories` is injectable for tests/previews; production resolves the default container.
     init(directories: AppDirectories? = nil) {
         do {
             let resolved = try directories ?? AppDirectories.makeDefault()
@@ -43,13 +39,30 @@ final class AppModel {
             self.stack = stack
             self.settings = restored.settings
             self.appState = restored.appState
-            if let (snippet, text) = try? stack.loadOrBootstrap() {
-                self.currentDocument = snippet.mainEditor
-                self.isLoadingContent = true
-                self.editorText = text
-                self.isLoadingContent = false
+
+            // Load snippet list; bootstrap on first launch. Nested catch so that
+            // a failure here doesn't prevent the app from launching with a healthy stack.
+            do {
+                var list = try stack.listSnippets()
+                if list.isEmpty {
+                    _ = try stack.loadOrBootstrap()
+                    list = try stack.listSnippets()
+                }
+                self.snippets = list
+
+                let target =
+                    list.first(where: { $0.id == restored.appState.selectedSnippetId }) ?? list.first
+                if let target {
+                    let text = try stack.loadSnippetContent(for: target.mainEditor)
+                    self.currentSnippet = target
+                    self.isLoadingContent = true
+                    self.editorText = text
+                    self.isLoadingContent = false
+                }
+                log.info("Restored state on launch, \(list.count) snippet(s)")
+            } catch {
+                log.error("Failed to restore snippets: \(error.localizedDescription, privacy: .public)")
             }
-            log.info("Restored state on launch")
         } catch {
             self.stack = nil
             self.settings = .default
@@ -72,7 +85,6 @@ final class AppModel {
 
     var storageIsHealthy: Bool { stack != nil }
 
-    /// SwiftUI color scheme derived from the appearance preference.
     var colorScheme: ColorScheme? {
         switch settings.appearanceMode {
         case .system: return nil
@@ -83,8 +95,6 @@ final class AppModel {
 
     // MARK: - Window
 
-    /// Connects the SwiftUI-created window: restores its saved frame and tracks
-    /// future geometry changes.
     func attach(window: NSWindow) {
         guard self.window !== window else { return }
         self.window = window
@@ -116,6 +126,80 @@ final class AppModel {
         scheduleAppStateSave()
     }
 
+    // MARK: - Snippet operations
+
+    func createSnippet() {
+        guard let stack else { return }
+        flushEditorContent()
+        do {
+            let new = try stack.createSnippet()
+            refreshSnippets()
+            currentSnippet = snippets.first(where: { $0.id == new.id }) ?? new
+            appState.selectedSnippetId = new.id
+            isLoadingContent = true
+            editorText = ""
+            isLoadingContent = false
+            scheduleAppStateSave()
+        } catch {
+            log.error("Failed to create snippet: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func selectSnippet(_ id: UUID) {
+        guard id != currentSnippet?.id else { return }
+        guard let stack, let snippet = snippets.first(where: { $0.id == id }) else { return }
+        flushEditorContent()
+        do {
+            let text = try stack.loadSnippetContent(for: snippet.mainEditor)
+            currentSnippet = snippet
+            appState.selectedSnippetId = id
+            isLoadingContent = true
+            editorText = text
+            isLoadingContent = false
+            scheduleAppStateSave()
+        } catch {
+            log.error("Failed to load snippet content: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func deleteSnippet(_ id: UUID) {
+        guard let stack else { return }
+        if currentSnippet?.id == id { flushEditorContent() }
+        do {
+            try stack.deleteSnippet(id: id, gracePeriodDays: settings.deletionGracePeriodDays)
+            refreshSnippets()
+            if currentSnippet == nil {
+                if let first = snippets.first {
+                    selectSnippet(first.id)
+                } else {
+                    createSnippet()
+                }
+            }
+        } catch {
+            log.error("Failed to delete snippet: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func togglePin(_ id: UUID) {
+        guard let stack, let target = snippets.first(where: { $0.id == id }) else { return }
+        do {
+            try stack.setSnippetPinned(id: id, isPinned: !target.isPinned)
+            refreshSnippets()
+        } catch {
+            log.error("Failed to toggle pin: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func toggleSidebar() {
+        setSidebarVisible(!appState.sidebarVisible)
+    }
+
+    func setSidebarVisible(_ visible: Bool) {
+        guard visible != appState.sidebarVisible else { return }
+        appState.sidebarVisible = visible
+        scheduleAppStateSave()
+    }
+
     // MARK: - Editor Persistence
 
     private func scheduleEditorSave() {
@@ -129,7 +213,7 @@ final class AppModel {
 
     private func flushEditorContent() {
         editorSaveTask?.cancel()
-        guard let stack, let doc = currentDocument else { return }
+        guard let stack, let doc = currentSnippet?.mainEditor else { return }
         do {
             try stack.saveEditorContent(editorText, for: doc)
         } catch {
@@ -139,7 +223,6 @@ final class AppModel {
 
     // MARK: - Persistence
 
-    /// Debounced save of UI state; frequent window events coalesce into one write.
     private func scheduleAppStateSave() {
         appStateSaveTask?.cancel()
         appStateSaveTask = Task { [weak self] in
@@ -149,7 +232,6 @@ final class AppModel {
         }
     }
 
-    /// Writes UI state immediately (on quit, or to flush a pending debounce).
     private func flushAppState() {
         appStateSaveTask?.cancel()
         guard let stack else { return }
@@ -157,6 +239,21 @@ final class AppModel {
             try stack.saveAppState(appState)
         } catch {
             log.error("Failed to persist app state: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    // MARK: - Private helpers
+
+    private func refreshSnippets() {
+        guard let stack else { return }
+        do {
+            snippets = try stack.listSnippets()
+            // Re-sync currentSnippet; becomes nil if it was just deleted.
+            if let current = currentSnippet {
+                currentSnippet = snippets.first(where: { $0.id == current.id })
+            }
+        } catch {
+            log.error("Failed to refresh snippet list: \(error.localizedDescription, privacy: .public)")
         }
     }
 }
