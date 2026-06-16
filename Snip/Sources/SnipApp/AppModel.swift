@@ -19,6 +19,9 @@ final class AppModel {
     private(set) var appState: AppState
     private(set) var initializationError: Error?
 
+    /// In-memory editor content. Persisted to disk in Milestone 3.
+    var editorText: String = ""
+
     @ObservationIgnored private let stack: StorageStack?
     @ObservationIgnored private weak var window: NSWindow?
     @ObservationIgnored private var appStateSaveTask: Task<Void, Never>?

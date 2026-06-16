@@ -1,37 +1,32 @@
 import SwiftUI
+import SharedModels
 
-/// Foundation-milestone placeholder UI.
-///
-/// Milestone 1 only proves the app launches and restores state; the editor,
-/// sidebar, and command palette arrive in later milestones and will replace
-/// this view.
 struct RootView: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "doc.text")
-                .font(.system(size: 44, weight: .light))
-                .foregroundStyle(.secondary)
-
-            Text("Snip")
-                .font(.title2.weight(.semibold))
-
-            if let error = model.initializationError {
-                Text("Storage unavailable — running with defaults.")
-                    .foregroundStyle(.red)
-                Text(String(describing: error))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            } else {
-                Text("Foundation ready · state restored")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+        @Bindable var model = model
+        SnipEditorView(text: $model.editorText, wordWrap: model.settings.wordWrapEnabled)
+            .frame(minWidth: 520, minHeight: 360)
+            .background(WindowAccessor { model.attach(window: $0) })
+            .overlay(alignment: .bottom) {
+                if let error = model.initializationError {
+                    storageWarning(error)
+                }
             }
+    }
+
+    @ViewBuilder
+    private func storageWarning(_ error: Error) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.yellow)
+            Text("Storage unavailable — changes won't be saved.")
+                .font(.caption)
         }
-        .padding(40)
-        .frame(minWidth: 520, minHeight: 360)
-        .background(WindowAccessor { model.attach(window: $0) })
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .padding(8)
     }
 }
