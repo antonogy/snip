@@ -24,6 +24,7 @@ public final class StorageStack: Sendable {
     public let directories: AppDirectories
     public let database: DatabaseQueue
     public let content: ContentStore
+    let snippets: SnippetStore
 
     private let config = JSONConfigStore()
     private let log = AppLog.make("storage.stack")
@@ -37,6 +38,7 @@ public final class StorageStack: Sendable {
         self.database = try DatabaseQueue(path: directories.databaseURL.path, configuration: configuration)
 
         try Migrations.makeMigrator().migrate(database)
+        self.snippets = SnippetStore(database: database)
         log.info("Storage initialized at \(directories.root.path, privacy: .public)")
     }
 
@@ -56,6 +58,22 @@ public final class StorageStack: Sendable {
 
     public func saveAppState(_ appState: AppState) throws {
         try config.save(appState, to: directories.appStateURL)
+    }
+
+    // MARK: - Snippet
+
+    /// Bootstraps a default snippet on first launch, or loads the existing active
+    /// snippet. Returns the snippet and its current text content.
+    public func loadOrBootstrap() throws -> (snippet: Snippet, content: String) {
+        let snippet = try snippets.bootstrapIfNeeded()
+        let text = try content.read(relativePath: snippet.mainEditor.contentFilePath)
+        return (snippet, text)
+    }
+
+    /// Atomically writes text to the content file, then bumps `updated_at` in the DB.
+    public func saveEditorContent(_ text: String, for doc: EditorDocument) throws {
+        try content.write(text, relativePath: doc.contentFilePath)
+        try snippets.touchEditorDocument(id: doc.id, at: Date())
     }
 
     // MARK: - Restoration
@@ -80,10 +98,12 @@ public final class StorageStack: Sendable {
 
 public enum StorageError: Error, CustomStringConvertible {
     case missingTable(String)
+    case contentReadFailed(String)
 
     public var description: String {
         switch self {
         case .missingTable(let name): return "Expected table '\(name)' is missing"
+        case .contentReadFailed(let path): return "Failed to read content file at '\(path)'"
         }
     }
 }

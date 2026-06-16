@@ -109,3 +109,46 @@ private func makeTempDirectories() throws -> AppDirectories {
     try store.write("let answer = 42\n", relativePath: relativePath)
     #expect(try store.read(relativePath: relativePath) == "let answer = 42\n")
 }
+
+@Test func bootstrapCreatesDefaultSnippet() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let (snippet, content) = try stack.loadOrBootstrap()
+
+    #expect(!snippet.id.uuidString.isEmpty)
+    #expect(content == "")
+    #expect(snippet.title == "Untitled")
+    #expect(!snippet.mainEditor.contentFilePath.isEmpty)
+}
+
+@Test func bootstrapIsIdempotent() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let (first, _) = try stack.loadOrBootstrap()
+    let (second, _) = try stack.loadOrBootstrap()
+
+    #expect(first.id == second.id)
+    #expect(first.mainEditor.id == second.mainEditor.id)
+}
+
+@Test func editorContentSurvivesRelaunch() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let content = "func hello() {\n    print(\"world\")\n}\n"
+
+    do {
+        let stack = try StorageStack(directories: directories)
+        let (snippet, _) = try stack.loadOrBootstrap()
+        try stack.saveEditorContent(content, for: snippet.mainEditor)
+    }
+
+    // Fresh stack over the same directory = relaunch.
+    let relaunched = try StorageStack(directories: AppDirectories(root: directories.root))
+    let (_, restoredContent) = try relaunched.loadOrBootstrap()
+    #expect(restoredContent == content)
+}

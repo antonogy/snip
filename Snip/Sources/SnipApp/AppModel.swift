@@ -19,12 +19,19 @@ final class AppModel {
     private(set) var appState: AppState
     private(set) var initializationError: Error?
 
-    /// In-memory editor content. Persisted to disk in Milestone 3.
-    var editorText: String = ""
+    var editorText: String = "" {
+        didSet {
+            guard !isLoadingContent, editorText != oldValue else { return }
+            scheduleEditorSave()
+        }
+    }
 
     @ObservationIgnored private let stack: StorageStack?
     @ObservationIgnored private weak var window: NSWindow?
+    @ObservationIgnored private var currentDocument: EditorDocument?
     @ObservationIgnored private var appStateSaveTask: Task<Void, Never>?
+    @ObservationIgnored private var editorSaveTask: Task<Void, Never>?
+    @ObservationIgnored private var isLoadingContent = false
     @ObservationIgnored private let log = AppLog.make("app.model")
 
     /// `directories` is injectable for tests/previews; production resolves the default container.
@@ -36,6 +43,12 @@ final class AppModel {
             self.stack = stack
             self.settings = restored.settings
             self.appState = restored.appState
+            if let (snippet, text) = try? stack.loadOrBootstrap() {
+                self.currentDocument = snippet.mainEditor
+                self.isLoadingContent = true
+                self.editorText = text
+                self.isLoadingContent = false
+            }
             log.info("Restored state on launch")
         } catch {
             self.stack = nil
@@ -50,7 +63,10 @@ final class AppModel {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.flushAppState() }
+            MainActor.assumeIsolated {
+                self?.flushEditorContent()
+                self?.flushAppState()
+            }
         }
     }
 
@@ -98,6 +114,27 @@ final class AppModel {
             height: frame.size.height
         )
         scheduleAppStateSave()
+    }
+
+    // MARK: - Editor Persistence
+
+    private func scheduleEditorSave() {
+        editorSaveTask?.cancel()
+        editorSaveTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(1_000))
+            guard !Task.isCancelled else { return }
+            self?.flushEditorContent()
+        }
+    }
+
+    private func flushEditorContent() {
+        editorSaveTask?.cancel()
+        guard let stack, let doc = currentDocument else { return }
+        do {
+            try stack.saveEditorContent(editorText, for: doc)
+        } catch {
+            log.error("Failed to autosave editor content: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     // MARK: - Persistence
