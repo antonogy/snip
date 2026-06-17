@@ -73,25 +73,42 @@ struct CollapsedSnippetItem: View {
     let isSelected: Bool
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 5)
-                .fill(isSelected ? Color.accentColor.opacity(0.15) : .clear)
-                .frame(width: 44, height: 44)
-            VStack(spacing: 2) {
-                Image(snippet.mainEditor.language.iconAssetName)
-                    .resizable()
-                    .renderingMode(.original)
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 22, height: 22)
+        Image(snippet.mainEditor.language.iconAssetName)
+            .resizable()
+            .renderingMode(.original)
+            .aspectRatio(contentMode: .fill)
+            .frame(width: 44, height: 44)
+            .clipShape(RoundedRectangle(cornerRadius: 5))
+            .overlay(alignment: .bottomTrailing) {
                 if index < 9 {
-                    Text("\u{2318}\(index + 1)")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .accessibilityHidden(true)
+                    shortcutBadge
+                        .padding(2)
                 }
             }
-        }
-        .frame(width: 44, height: 44)
+            .overlay(alignment: .topTrailing) {
+                if snippet.isPinned {
+                    Image(systemName: "pin.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .padding(.horizontal, 3)
+                        .padding(.vertical, 1)
+                }
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 5)
+                    .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 2)
+            }
+            .frame(width: 44, height: 44)
+    }
+
+    private var shortcutBadge: some View {
+        Text("\u{2318}\(index + 1)")
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+            .padding(.horizontal, 3)
+            .padding(.vertical, 1)
+//            .background(.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 3))
+            .accessibilityHidden(true)
     }
 }
 
@@ -133,16 +150,16 @@ struct SnippetCard: View {
 extension CodeLanguage {
     var iconAssetName: String {
         switch self {
-        case .javascript: return "javascript-original"
-        case .typescript: return "typescript-original"
-        case .json: return "json-plain"
-        case .html: return "htmx-original"
-        case .css: return "css3-plain-wordmark"
-        case .sql: return "azuresqldatabase-plain"
-        case .swift: return "swift-original"
-        case .python: return "python-original"
-        case .bash: return "bash-original"
-        case .plainText: return "plain-text"
+        case .javascript: return "javascript"
+        case .typescript: return "typescript"
+        case .json: return "json"
+        case .html: return "htmx"
+        case .css: return "css"
+        case .sql: return "sql"
+        case .swift: return "swift"
+        case .python: return "python"
+        case .bash: return "bash"
+        case .plainText: return "plain_text"
         }
     }
 }
