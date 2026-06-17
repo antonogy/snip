@@ -186,8 +186,7 @@ struct SnippetStore: Sendable {
     func loadSnippet(id: UUID) throws -> Snippet? {
         try database.read { db in
             guard let sr = try SnippetRecord.fetchOne(db, key: id.uuidString) else { return nil }
-            guard let er = try EditorDocumentRecord.fetchOne(db, key: sr.mainEditorId) else { return nil }
-            return sr.toSnippet(mainEditor: er.toModel())
+            return try hydrate(sr, db)
         }
     }
 
@@ -279,17 +278,106 @@ struct SnippetStore: Sendable {
         }
     }
 
+    // MARK: - Split editor
+
+    /// Creates the snippet's split editor (inheriting the main editor's language) or,
+    /// if one already exists, just re-orients it — enforcing the "one split only" rule.
+    /// Returns the hydrated snippet and, when a new editor was created, its content path
+    /// so the caller can write the (empty) backing file.
+    func setSplit(
+        snippetId: UUID,
+        orientation: SplitOrientation,
+        now: Date = Date()
+    ) throws -> (snippet: Snippet, createdEditorPath: String?) {
+        try database.write { db in
+            guard let sr = try SnippetRecord.fetchOne(db, key: snippetId.uuidString) else {
+                throw StorageError.missingSnippet(snippetId.uuidString)
+            }
+
+            if sr.splitEditorId == nil {
+                guard let mainRec = try EditorDocumentRecord.fetchOne(db, key: sr.mainEditorId) else {
+                    throw StorageError.missingSnippet(snippetId.uuidString)
+                }
+                let editorID = UUID()
+                let doc = EditorDocument(
+                    id: editorID,
+                    contentFilePath: ContentStore.fileName(for: editorID),
+                    language: mainRec.toModel().language,
+                    languageMode: .auto,
+                    createdAt: now,
+                    updatedAt: now
+                )
+                try EditorDocumentRecord(from: doc).insert(db)
+                try db.execute(
+                    sql: """
+                        UPDATE snippets
+                        SET split_editor_id = ?, split_orientation = ?, updated_at = ?
+                        WHERE id = ?
+                        """,
+                    arguments: [editorID.uuidString, orientation.rawValue, now, snippetId.uuidString]
+                )
+                let refreshed = try SnippetRecord.fetchOne(db, key: snippetId.uuidString)!
+                return (try hydrate(refreshed, db)!, doc.contentFilePath)
+            } else {
+                try db.execute(
+                    sql: "UPDATE snippets SET split_orientation = ?, updated_at = ? WHERE id = ?",
+                    arguments: [orientation.rawValue, now, snippetId.uuidString]
+                )
+                let refreshed = try SnippetRecord.fetchOne(db, key: snippetId.uuidString)!
+                return (try hydrate(refreshed, db)!, nil)
+            }
+        }
+    }
+
+    /// Removes the snippet's split editor: clears the references, deletes the orphaned
+    /// editor-document row, and returns the removed editor's content path for file cleanup.
+    func closeSplit(snippetId: UUID, now: Date = Date()) throws -> (
+        snippet: Snippet, removedEditorPath: String?
+    ) {
+        try database.write { db in
+            guard let sr = try SnippetRecord.fetchOne(db, key: snippetId.uuidString) else {
+                throw StorageError.missingSnippet(snippetId.uuidString)
+            }
+            guard let splitId = sr.splitEditorId else {
+                return (try hydrate(sr, db)!, nil)
+            }
+            let removedPath = try EditorDocumentRecord.fetchOne(db, key: splitId)?.contentFilePath
+            try db.execute(
+                sql: """
+                    UPDATE snippets
+                    SET split_editor_id = NULL, split_orientation = NULL, updated_at = ?
+                    WHERE id = ?
+                    """,
+                arguments: [now, snippetId.uuidString]
+            )
+            try db.execute(
+                sql: "DELETE FROM editor_documents WHERE id = ?",
+                arguments: [splitId]
+            )
+            let refreshed = try SnippetRecord.fetchOne(db, key: snippetId.uuidString)!
+            return (try hydrate(refreshed, db)!, removedPath)
+        }
+    }
+
     // MARK: - Private
 
+    /// Builds a full `Snippet` from its record, loading the main editor and the
+    /// optional split editor. Returns `nil` only if the main editor is missing.
+    private func hydrate(_ sr: SnippetRecord, _ db: Database) throws -> Snippet? {
+        guard let mainRec = try EditorDocumentRecord.fetchOne(db, key: sr.mainEditorId) else { return nil }
+        let split = try sr.splitEditorId
+            .flatMap { try EditorDocumentRecord.fetchOne(db, key: $0) }?
+            .toModel()
+        return sr.toSnippet(mainEditor: mainRec.toModel(), splitEditor: split)
+    }
+
     private func fetchAllSnippets(_ db: Database) throws -> [Snippet] {
-        let records = try SnippetRecord
+        let records =
+            try SnippetRecord
             .filter(sql: "deleted_at IS NULL")
             .order(Column("is_pinned").desc, Column("updated_at").desc)
             .fetchAll(db)
-        return try records.compactMap { sr in
-            guard let er = try EditorDocumentRecord.fetchOne(db, key: sr.mainEditorId) else { return nil }
-            return sr.toSnippet(mainEditor: er.toModel())
-        }
+        return try records.compactMap { try hydrate($0, db) }
     }
 
     /// Generates the next auto-title for the given language.
@@ -328,12 +416,13 @@ struct SnippetStore: Sendable {
     }
 
     private func fetchFirstSnippet(_ db: Database) throws -> Snippet? {
-        guard let sr = try SnippetRecord
-            .filter(sql: "deleted_at IS NULL")
-            .order(Column("created_at"))
-            .fetchOne(db)
+        guard
+            let sr =
+                try SnippetRecord
+                .filter(sql: "deleted_at IS NULL")
+                .order(Column("created_at"))
+                .fetchOne(db)
         else { return nil }
-        guard let er = try EditorDocumentRecord.fetchOne(db, key: sr.mainEditorId) else { return nil }
-        return sr.toSnippet(mainEditor: er.toModel())
+        return try hydrate(sr, db)
     }
 }

@@ -11,7 +11,7 @@ struct RootView: View {
             SidebarView()
                 .navigationSplitViewColumnWidth(min: 160, ideal: 240, max: 400)
         } detail: {
-            SnipEditorView(text: $model.editorText, wordWrap: model.settings.wordWrapEnabled)
+            editorArea(model: model)
                 .frame(minWidth: 400, minHeight: 300)
         }
         .frame(minWidth: 560, minHeight: 360)
@@ -32,6 +32,30 @@ struct RootView: View {
         }
         .background {
             keyboardShortcuts
+        }
+    }
+
+    /// The detail pane: a single editor, or the main + split editors arranged by
+    /// the current snippet's split orientation with a draggable divider.
+    @ViewBuilder
+    private func editorArea(model: AppModel) -> some View {
+        @Bindable var model = model
+        let main = SnipEditorView(text: $model.editorText, wordWrap: model.settings.wordWrapEnabled)
+        let split = SnipEditorView(text: $model.splitEditorText, wordWrap: model.settings.wordWrapEnabled)
+
+        switch model.splitOrientation {
+        case .none:
+            main
+        case .horizontal:
+            HSplitView {
+                main.frame(minWidth: 200)
+                split.frame(minWidth: 200)
+            }
+        case .vertical:
+            VSplitView {
+                main.frame(minHeight: 120)
+                split.frame(minHeight: 120)
+            }
         }
     }
 

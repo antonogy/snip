@@ -24,10 +24,26 @@ final class AppModel {
         }
     }
 
+    var splitEditorText: String = "" {
+        didSet {
+            guard !isLoadingContent, splitEditorText != oldValue else { return }
+            scheduleSplitSave()
+        }
+    }
+
+    /// Whether the current snippet has a split editor.
+    var hasSplit: Bool { currentSnippet?.splitEditor != nil }
+
+    /// Orientation of the current snippet's split, or `nil` when there is no split.
+    var splitOrientation: SplitOrientation? {
+        currentSnippet?.splitEditor != nil ? currentSnippet?.splitOrientation : nil
+    }
+
     @ObservationIgnored private let stack: StorageStack?
     @ObservationIgnored private weak var window: NSWindow?
     @ObservationIgnored private var appStateSaveTask: Task<Void, Never>?
     @ObservationIgnored private var editorSaveTask: Task<Void, Never>?
+    @ObservationIgnored private var splitSaveTask: Task<Void, Never>?
     @ObservationIgnored private var isLoadingContent = false
     @ObservationIgnored private let log = AppLog.make("app.model")
 
@@ -54,9 +70,11 @@ final class AppModel {
                     list.first(where: { $0.id == restored.appState.selectedSnippetId }) ?? list.first
                 if let target {
                     let text = try stack.loadSnippetContent(for: target.mainEditor)
+                    let splitText = try target.splitEditor.map { try stack.loadSnippetContent(for: $0) } ?? ""
                     self.currentSnippet = target
                     self.isLoadingContent = true
                     self.editorText = text
+                    self.splitEditorText = splitText
                     self.isLoadingContent = false
                 }
                 log.info("Restored state on launch, \(list.count) snippet(s)")
@@ -79,6 +97,7 @@ final class AppModel {
         ) { [weak self] _ in
             MainActor.assumeIsolated {
                 self?.flushEditorContent()
+                self?.flushSplitContent()
                 self?.flushAppState()
             }
         }
@@ -132,6 +151,7 @@ final class AppModel {
     func createSnippet() {
         guard let stack else { return }
         flushEditorContent()
+        flushSplitContent()
         do {
             let new = try stack.createSnippet()
             refreshSnippets()
@@ -139,6 +159,7 @@ final class AppModel {
             appState.selectedSnippetId = new.id
             isLoadingContent = true
             editorText = ""
+            splitEditorText = ""
             isLoadingContent = false
             scheduleAppStateSave()
         } catch {
@@ -150,12 +171,15 @@ final class AppModel {
         guard id != currentSnippet?.id else { return }
         guard let stack, let snippet = snippets.first(where: { $0.id == id }) else { return }
         flushEditorContent()
+        flushSplitContent()
         do {
             let text = try stack.loadSnippetContent(for: snippet.mainEditor)
+            let splitText = try snippet.splitEditor.map { try stack.loadSnippetContent(for: $0) } ?? ""
             currentSnippet = snippet
             appState.selectedSnippetId = id
             isLoadingContent = true
             editorText = text
+            splitEditorText = splitText
             isLoadingContent = false
             scheduleAppStateSave()
         } catch {
@@ -165,7 +189,10 @@ final class AppModel {
 
     func deleteSnippet(_ id: UUID) {
         guard let stack else { return }
-        if currentSnippet?.id == id { flushEditorContent() }
+        if currentSnippet?.id == id {
+            flushEditorContent()
+            flushSplitContent()
+        }
         do {
             try stack.deleteSnippet(id: id, gracePeriodDays: settings.deletionGracePeriodDays)
             refreshSnippets()
@@ -201,6 +228,45 @@ final class AppModel {
         scheduleAppStateSave()
     }
 
+    // MARK: - Split editor
+
+    /// Splits the current snippet into a left/right pair (or re-orients an existing split).
+    func splitRight() { setSplit(.horizontal) }
+
+    /// Splits the current snippet into a top/bottom pair (or re-orients an existing split).
+    func splitDown() { setSplit(.vertical) }
+
+    private func setSplit(_ orientation: SplitOrientation) {
+        guard let stack, let id = currentSnippet?.id else { return }
+        flushSplitContent()
+        do {
+            let updated = try stack.setSplit(snippetId: id, orientation: orientation)
+            let splitText = try updated.splitEditor.map { try stack.loadSnippetContent(for: $0) } ?? ""
+            currentSnippet = updated
+            isLoadingContent = true
+            splitEditorText = splitText
+            isLoadingContent = false
+            refreshSnippets()
+        } catch {
+            log.error("Failed to set split: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func closeSplit() {
+        guard let stack, let id = currentSnippet?.id, hasSplit else { return }
+        do {
+            let updated = try stack.closeSplit(snippetId: id)
+            splitSaveTask?.cancel()
+            currentSnippet = updated
+            isLoadingContent = true
+            splitEditorText = ""
+            isLoadingContent = false
+            refreshSnippets()
+        } catch {
+            log.error("Failed to close split: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     // MARK: - Editor Persistence
 
     private func scheduleEditorSave() {
@@ -219,6 +285,25 @@ final class AppModel {
             try stack.saveEditorContent(editorText, for: doc)
         } catch {
             log.error("Failed to autosave editor content: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private func scheduleSplitSave() {
+        splitSaveTask?.cancel()
+        splitSaveTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(1_000))
+            guard !Task.isCancelled else { return }
+            self?.flushSplitContent()
+        }
+    }
+
+    private func flushSplitContent() {
+        splitSaveTask?.cancel()
+        guard let stack, let doc = currentSnippet?.splitEditor else { return }
+        do {
+            try stack.saveEditorContent(splitEditorText, for: doc)
+        } catch {
+            log.error("Failed to autosave split content: \(error.localizedDescription, privacy: .public)")
         }
     }
 

@@ -12,5 +12,8 @@ struct SnipApp: App {
                 .environment(model)
                 .preferredColorScheme(model.colorScheme)
         }
+        .commands {
+            SnipCommands(model: model)
+        }
     }
 }

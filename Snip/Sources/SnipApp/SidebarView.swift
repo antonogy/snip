@@ -62,6 +62,12 @@ struct SnippetCard: View {
                 Text(snippet.mainEditor.language.displayName)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                if snippet.splitEditor != nil {
+                    Image(systemName: "rectangle.split.2x1")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .accessibilityLabel("Split")
+                }
                 Spacer(minLength: 0)
                 if index < 9 {
                     Text("\u{2318}\(index + 1)")

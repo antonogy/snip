@@ -160,9 +160,9 @@ private func makeTempDirectories() throws -> AppDirectories {
     defer { try? FileManager.default.removeItem(at: directories.root) }
 
     let stack = try StorageStack(directories: directories)
-    _ = try stack.loadOrBootstrap()      // creates first snippet
-    _ = try stack.createSnippet()        // second
-    _ = try stack.createSnippet()        // third
+    _ = try stack.loadOrBootstrap()  // creates first snippet
+    _ = try stack.createSnippet()  // second
+    _ = try stack.createSnippet()  // third
 
     let list = try stack.listSnippets()
     #expect(list.count == 3)
@@ -201,7 +201,7 @@ private func makeTempDirectories() throws -> AppDirectories {
 
     let stack = try StorageStack(directories: directories)
     let first = try stack.createSnippet()
-    _ = try stack.createSnippet()   // second; newer, would be at index 0 unpinned
+    _ = try stack.createSnippet()  // second; newer, would be at index 0 unpinned
 
     // Pin the older snippet — it should jump to the top.
     try stack.setSnippetPinned(id: first.id, isPinned: true)
@@ -227,4 +227,96 @@ private func makeTempDirectories() throws -> AppDirectories {
         ) ?? 0
     }
     #expect(count == 1)
+}
+
+// MARK: - Milestone 5: Split editor tests
+
+@Test func setSplitCreatesEmptyEditorInheritingLanguage() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let snippet = try stack.createSnippet()
+
+    let updated = try stack.setSplit(snippetId: snippet.id, orientation: .horizontal)
+    let split = try #require(updated.splitEditor)
+
+    #expect(updated.splitOrientation == .horizontal)
+    #expect(split.id != updated.mainEditor.id)
+    #expect(split.language == updated.mainEditor.language)
+    // Split content starts empty, with a backing file present.
+    #expect(try stack.loadSnippetContent(for: split) == "")
+}
+
+@Test func setSplitTwiceOnlyReorients() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let snippet = try stack.createSnippet()
+
+    let first = try stack.setSplit(snippetId: snippet.id, orientation: .horizontal)
+    let firstSplitId = try #require(first.splitEditor).id
+
+    let second = try stack.setSplit(snippetId: snippet.id, orientation: .vertical)
+    // Same split editor, only the orientation changed — enforces "one split only".
+    #expect(second.splitEditor?.id == firstSplitId)
+    #expect(second.splitOrientation == .vertical)
+
+    let editorCount = try stack.database.read { db in
+        try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM editor_documents") ?? 0
+    }
+    #expect(editorCount == 2)  // main + one split
+}
+
+@Test func splitContentAndOrientationSurviveRelaunch() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let splitContent = "SELECT * FROM users;\n"
+    let snippetId: UUID
+
+    do {
+        let stack = try StorageStack(directories: directories)
+        let snippet = try stack.createSnippet()
+        snippetId = snippet.id
+        let updated = try stack.setSplit(snippetId: snippet.id, orientation: .vertical)
+        let split = try #require(updated.splitEditor)
+        try stack.saveEditorContent(splitContent, for: split)
+    }
+
+    // Fresh stack over the same directory = relaunch.
+    let relaunched = try StorageStack(directories: AppDirectories(root: directories.root))
+    let restored = try #require(relaunched.listSnippets().first(where: { $0.id == snippetId }))
+    let split = try #require(restored.splitEditor)
+
+    #expect(restored.splitOrientation == .vertical)
+    #expect(try relaunched.loadSnippetContent(for: split) == splitContent)
+}
+
+@Test func closeSplitClearsReferencesAndDeletesEditor() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let snippet = try stack.createSnippet()
+    let withSplit = try stack.setSplit(snippetId: snippet.id, orientation: .horizontal)
+    let split = try #require(withSplit.splitEditor)
+    let splitFilePath = ContentStore(directories: directories).url(forRelativePath: split.contentFilePath)
+        .path
+
+    let closed = try stack.closeSplit(snippetId: snippet.id)
+    #expect(closed.splitEditor == nil)
+    #expect(closed.splitOrientation == nil)
+
+    // The orphaned editor row and its content file are gone.
+    let exists = try stack.database.read { db in
+        try Bool.fetchOne(
+            db,
+            sql: "SELECT EXISTS(SELECT 1 FROM editor_documents WHERE id = ?)",
+            arguments: [split.id.uuidString]
+        ) ?? false
+    }
+    #expect(exists == false)
+    #expect(!FileManager.default.fileExists(atPath: splitFilePath))
 }

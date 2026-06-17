@@ -105,6 +105,27 @@ public final class StorageStack: Sendable {
         try content.read(relativePath: doc.contentFilePath)
     }
 
+    // MARK: - Split editor
+
+    /// Adds a split editor to the snippet (or re-orients an existing one). A newly
+    /// created split starts with an empty content file. Returns the updated snippet.
+    public func setSplit(snippetId: UUID, orientation: SplitOrientation) throws -> Snippet {
+        let result = try snippets.setSplit(snippetId: snippetId, orientation: orientation)
+        if let path = result.createdEditorPath {
+            try content.write("", relativePath: path)
+        }
+        return result.snippet
+    }
+
+    /// Removes the snippet's split editor and deletes its backing content file.
+    public func closeSplit(snippetId: UUID) throws -> Snippet {
+        let result = try snippets.closeSplit(snippetId: snippetId)
+        if let path = result.removedEditorPath {
+            try content.remove(relativePath: path)
+        }
+        return result.snippet
+    }
+
     // MARK: - Restoration
 
     /// Loads settings and UI state for startup restoration.
@@ -128,11 +149,13 @@ public final class StorageStack: Sendable {
 public enum StorageError: Error, CustomStringConvertible {
     case missingTable(String)
     case contentReadFailed(String)
+    case missingSnippet(String)
 
     public var description: String {
         switch self {
         case .missingTable(let name): return "Expected table '\(name)' is missing"
         case .contentReadFailed(let path): return "Failed to read content file at '\(path)'"
+        case .missingSnippet(let id): return "Snippet '\(id)' not found"
         }
     }
 }

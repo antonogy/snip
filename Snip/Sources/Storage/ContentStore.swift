@@ -34,4 +34,11 @@ public struct ContentStore: Sendable {
         let url = url(forRelativePath: relativePath)
         try Data(content.utf8).write(to: url, options: .atomic)
     }
+
+    /// Deletes the backing file at `relativePath`, ignoring a missing file.
+    public func remove(relativePath: String) throws {
+        let url = url(forRelativePath: relativePath)
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        try FileManager.default.removeItem(at: url)
+    }
 }
