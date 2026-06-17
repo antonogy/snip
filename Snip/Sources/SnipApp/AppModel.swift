@@ -63,6 +63,12 @@ final class AppModel {
             } catch {
                 log.error("Failed to restore snippets: \(error.localizedDescription, privacy: .public)")
             }
+
+            // Migrate: old JSON with sidebarVisible:false → collapsed strip instead of hidden.
+            if !self.appState.sidebarVisible {
+                self.appState.sidebarVisible = true
+                self.appState.sidebarCollapsed = true
+            }
         } catch {
             self.stack = nil
             self.settings = .default
@@ -191,12 +197,12 @@ final class AppModel {
     }
 
     func toggleSidebar() {
-        setSidebarVisible(!appState.sidebarVisible)
+        setSidebarCollapsed(!appState.sidebarCollapsed)
     }
 
-    func setSidebarVisible(_ visible: Bool) {
-        guard visible != appState.sidebarVisible else { return }
-        appState.sidebarVisible = visible
+    func setSidebarCollapsed(_ collapsed: Bool) {
+        guard collapsed != appState.sidebarCollapsed else { return }
+        appState.sidebarCollapsed = collapsed
         scheduleAppStateSave()
     }
 

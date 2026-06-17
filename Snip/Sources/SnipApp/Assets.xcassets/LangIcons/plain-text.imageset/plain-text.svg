@@ -1,0 +1,20 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Plain text file icon</title>
+  <desc id="desc">Minimal black and white square icon with Abc text and horizontal text lines.</desc>
+
+  <!-- Outer rounded square -->
+  <rect x="56" y="56" width="400" height="400" rx="54" fill="white" stroke="black" stroke-width="24"/>
+
+  <!-- Abc text -->
+  <text x="256" y="224"
+        text-anchor="middle"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="132"
+        font-weight="700"
+        fill="black">Abc</text>
+
+  <!-- Text lines -->
+  <line x1="132" y1="294" x2="380" y2="294" stroke="black" stroke-width="18" stroke-linecap="round"/>
+  <line x1="132" y1="352" x2="380" y2="352" stroke="black" stroke-width="18" stroke-linecap="round"/>
+  <line x1="132" y1="410" x2="304" y2="410" stroke="black" stroke-width="18" stroke-linecap="round"/>
+</svg>
