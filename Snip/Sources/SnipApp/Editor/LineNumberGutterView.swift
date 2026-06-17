@@ -39,8 +39,7 @@ final class LineNumberGutterView: NSView {
 
         guard
             let textView,
-            let layoutManager = textView.layoutManager,
-            let textContainer = textView.textContainer
+            let layoutManager = textView.layoutManager
         else { return }
 
         let string = textView.string as NSString
@@ -59,7 +58,13 @@ final class LineNumberGutterView: NSView {
                 forCharacterRange: lineRange,
                 actualCharacterRange: nil
             )
-            let lineRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
+            // Use lineFragmentRect for the first glyph rather than boundingRect for
+            // the whole glyph range: the trailing \n glyph is positioned at the start
+            // of the next visual row, which would double the height and shift the
+            // centred line number down into the empty line below.
+            let lineRect = glyphRange.length > 0
+                ? layoutManager.lineFragmentRect(forGlyphAt: glyphRange.location, effectiveRange: nil)
+                : .zero
             let y = lineRect.minY + containerOriginY - scrollOffset
 
             drawNumber(lineNumber, y: y, height: lineRect.height, in: dirtyRect)

@@ -253,7 +253,7 @@ Card contains:
 * title
 * language
 * pin state
-* last modified time
+* keyboard shortcut hint (⌘1–⌘9 for the first 9 snippets)
 * split indicator
 
 Ordering:
