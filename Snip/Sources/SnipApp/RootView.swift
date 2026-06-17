@@ -7,21 +7,14 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var model = model
-        let collapsed = model.appState.sidebarCollapsed
         NavigationSplitView(columnVisibility: $columnVisibility) {
             SidebarView()
-                .toolbar(removing: .sidebarToggle)
-                .navigationSplitViewColumnWidth(
-                    min: collapsed ? 82 : 160,
-                    ideal: collapsed ? 82 : 240,
-                    max: collapsed ? 82 : 400
-                )
+                .navigationSplitViewColumnWidth(min: 160, ideal: 240, max: 400)
         } detail: {
             SnipEditorView(text: $model.editorText, wordWrap: model.settings.wordWrapEnabled)
                 .frame(minWidth: 400, minHeight: 300)
         }
         .frame(minWidth: 560, minHeight: 360)
-        .toolbarBackground(.visible, for: .windowToolbar)
         .background(WindowAccessor { model.attach(window: $0) })
         .overlay(alignment: .bottom) {
             if let error = model.initializationError {
@@ -29,20 +22,13 @@ struct RootView: View {
             }
         }
         .onAppear {
-            columnVisibility = .all
+            columnVisibility = model.appState.sidebarVisible ? .all : .detailOnly
+        }
+        .onChange(of: model.appState.sidebarVisible) { _, visible in
+            columnVisibility = visible ? .all : .detailOnly
         }
         .onChange(of: columnVisibility) { _, v in
-            if v == .detailOnly {
-                columnVisibility = .all
-                model.setSidebarCollapsed(true)
-            }
-        }
-        .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Button { model.toggleSidebar() } label: {
-                    Image(systemName: "sidebar.left")
-                }
-            }
+            model.setSidebarVisible(v != .detailOnly)
         }
         .background {
             keyboardShortcuts
