@@ -267,6 +267,94 @@ final class AppModel {
         }
     }
 
+    // MARK: - Language
+
+    /// Convenience accessors for the toolbar pickers.
+    var mainLanguage: CodeLanguage { currentSnippet?.mainEditor.language ?? .plainText }
+    var mainLanguageIsAuto: Bool { (currentSnippet?.mainEditor.languageMode ?? .auto) == .auto }
+    var splitLanguage: CodeLanguage { currentSnippet?.splitEditor?.language ?? .plainText }
+    var splitLanguageIsAuto: Bool { (currentSnippet?.splitEditor?.languageMode ?? .auto) == .auto }
+
+    /// Manually pins the main editor's language, disabling auto-detection (FR-14).
+    func selectMainLanguage(_ language: CodeLanguage) {
+        applyMainLanguage(language, mode: .manual)
+    }
+
+    /// Restores auto-detection for the main editor and re-runs it immediately.
+    func restoreMainAutoDetect() {
+        applyMainLanguage(mainLanguage, mode: .auto)
+        detectMainLanguage()
+    }
+
+    /// Manually pins the split editor's language, disabling auto-detection (FR-14).
+    func selectSplitLanguage(_ language: CodeLanguage) {
+        applySplitLanguage(language, mode: .manual)
+    }
+
+    /// Restores auto-detection for the split editor and re-runs it immediately.
+    func restoreSplitAutoDetect() {
+        applySplitLanguage(splitLanguage, mode: .auto)
+        detectSplitLanguage()
+    }
+
+    /// Auto-detects the main editor's language when it is in auto mode. An empty
+    /// editor clears any manual override and returns to Auto Detect (FR-3).
+    private func detectMainLanguage() {
+        guard !isLoadingContent, let snippet = currentSnippet else { return }
+        let editor = snippet.mainEditor
+        if editorText.isEmpty {
+            if editor.languageMode != .auto || editor.language != .plainText {
+                applyMainLanguage(.plainText, mode: .auto)
+            }
+            return
+        }
+        guard editor.languageMode == .auto else { return }
+        let detected = LanguageDetector.detect(editorText)
+        if detected != editor.language {
+            applyMainLanguage(detected, mode: .auto)
+        }
+    }
+
+    /// Auto-detects the split editor's language when it is in auto mode.
+    private func detectSplitLanguage() {
+        guard !isLoadingContent, let snippet = currentSnippet, let editor = snippet.splitEditor else {
+            return
+        }
+        if splitEditorText.isEmpty {
+            if editor.languageMode != .auto || editor.language != .plainText {
+                applySplitLanguage(.plainText, mode: .auto)
+            }
+            return
+        }
+        guard editor.languageMode == .auto else { return }
+        let detected = LanguageDetector.detect(splitEditorText)
+        if detected != editor.language {
+            applySplitLanguage(detected, mode: .auto)
+        }
+    }
+
+    private func applyMainLanguage(_ language: CodeLanguage, mode: LanguageMode) {
+        guard let stack, let id = currentSnippet?.id else { return }
+        do {
+            let updated = try stack.setMainLanguage(snippetId: id, language: language, mode: mode)
+            currentSnippet = updated
+            refreshSnippets()
+        } catch {
+            log.error("Failed to set main language: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private func applySplitLanguage(_ language: CodeLanguage, mode: LanguageMode) {
+        guard let stack, let id = currentSnippet?.id, hasSplit else { return }
+        do {
+            let updated = try stack.setSplitLanguage(snippetId: id, language: language, mode: mode)
+            currentSnippet = updated
+            refreshSnippets()
+        } catch {
+            log.error("Failed to set split language: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     // MARK: - Editor Persistence
 
     private func scheduleEditorSave() {
@@ -275,6 +363,7 @@ final class AppModel {
             try? await Task.sleep(for: .milliseconds(1_000))
             guard !Task.isCancelled else { return }
             self?.flushEditorContent()
+            self?.detectMainLanguage()
         }
     }
 
@@ -294,6 +383,7 @@ final class AppModel {
             try? await Task.sleep(for: .milliseconds(1_000))
             guard !Task.isCancelled else { return }
             self?.flushSplitContent()
+            self?.detectSplitLanguage()
         }
     }
 

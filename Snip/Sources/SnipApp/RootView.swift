@@ -13,6 +13,7 @@ struct RootView: View {
         } detail: {
             editorArea(model: model)
                 .frame(minWidth: 400, minHeight: 300)
+                .toolbar { languageToolbar(model: model) }
         }
         .frame(minWidth: 560, minHeight: 360)
         .background(WindowAccessor { model.attach(window: $0) })
@@ -55,6 +56,32 @@ struct RootView: View {
             VSplitView {
                 main.frame(minHeight: 120)
                 split.frame(minHeight: 120)
+            }
+        }
+    }
+
+    /// Language menu(s) for the detail toolbar: one for a single editor, or a
+    /// labeled pair when a split is open (each editor's language is independent).
+    @ToolbarContentBuilder
+    private func languageToolbar(model: AppModel) -> some ToolbarContent {
+        ToolbarItemGroup(placement: .automatic) {
+            if model.currentSnippet != nil {
+                LanguagePicker(
+                    caption: model.hasSplit ? "Main" : nil,
+                    language: model.mainLanguage,
+                    isAuto: model.mainLanguageIsAuto,
+                    onSelect: { model.selectMainLanguage($0) },
+                    onAuto: { model.restoreMainAutoDetect() }
+                )
+                if model.hasSplit {
+                    LanguagePicker(
+                        caption: "Split",
+                        language: model.splitLanguage,
+                        isAuto: model.splitLanguageIsAuto,
+                        onSelect: { model.selectSplitLanguage($0) },
+                        onAuto: { model.restoreSplitAutoDetect() }
+                    )
+                }
             }
         }
     }

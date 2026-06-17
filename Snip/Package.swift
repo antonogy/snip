@@ -43,6 +43,13 @@ let package = Package(
         ),
 
         .testTarget(
+            name: "SharedModelsTests",
+            dependencies: [
+                "SharedModels"
+            ]
+        ),
+
+        .testTarget(
             name: "StorageTests",
             dependencies: [
                 "Storage",

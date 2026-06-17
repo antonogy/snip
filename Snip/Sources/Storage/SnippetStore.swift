@@ -359,6 +359,62 @@ struct SnippetStore: Sendable {
         }
     }
 
+    // MARK: - Language
+
+    /// Updates the main editor's language and detection mode. When `regenerateTitle`
+    /// is set and the title is still automatic, the title is recomputed from the new
+    /// language (FR-2). Returns the re-hydrated snippet.
+    func setMainEditorLanguage(
+        snippetId: UUID,
+        language: CodeLanguage,
+        mode: LanguageMode,
+        regenerateTitle: Bool,
+        now: Date = Date()
+    ) throws -> Snippet {
+        try database.write { db in
+            guard let sr = try SnippetRecord.fetchOne(db, key: snippetId.uuidString) else {
+                throw StorageError.missingSnippet(snippetId.uuidString)
+            }
+            try db.execute(
+                sql: "UPDATE editor_documents SET language = ?, language_mode = ?, updated_at = ? WHERE id = ?",
+                arguments: [language.rawValue, mode.rawValue, now, sr.mainEditorId]
+            )
+            if regenerateTitle, sr.titleSource == SnippetTitleSource.automatic.rawValue {
+                let title = try nextTitle(for: language, excluding: snippetId, in: db)
+                try db.execute(
+                    sql: "UPDATE snippets SET title = ?, updated_at = ? WHERE id = ?",
+                    arguments: [title, now, snippetId.uuidString]
+                )
+            }
+            let refreshed = try SnippetRecord.fetchOne(db, key: snippetId.uuidString)!
+            return try hydrate(refreshed, db)!
+        }
+    }
+
+    /// Updates the split editor's language and detection mode. The title is never
+    /// touched — the auto title always derives from the main editor (FR-4).
+    func setSplitEditorLanguage(
+        snippetId: UUID,
+        language: CodeLanguage,
+        mode: LanguageMode,
+        now: Date = Date()
+    ) throws -> Snippet {
+        try database.write { db in
+            guard let sr = try SnippetRecord.fetchOne(db, key: snippetId.uuidString) else {
+                throw StorageError.missingSnippet(snippetId.uuidString)
+            }
+            guard let splitId = sr.splitEditorId else {
+                return try hydrate(sr, db)!
+            }
+            try db.execute(
+                sql: "UPDATE editor_documents SET language = ?, language_mode = ?, updated_at = ? WHERE id = ?",
+                arguments: [language.rawValue, mode.rawValue, now, splitId]
+            )
+            let refreshed = try SnippetRecord.fetchOne(db, key: snippetId.uuidString)!
+            return try hydrate(refreshed, db)!
+        }
+    }
+
     // MARK: - Private
 
     /// Builds a full `Snippet` from its record, loading the main editor and the
@@ -381,14 +437,19 @@ struct SnippetStore: Sendable {
     }
 
     /// Generates the next auto-title for the given language.
-    /// Counts existing non-deleted snippets whose title starts with the language display name.
-    private func nextTitle(for language: CodeLanguage, in db: Database) throws -> String {
+    /// Counts existing non-deleted snippets whose title starts with the language display name,
+    /// optionally skipping one snippet (used when retitling that snippet in place).
+    private func nextTitle(
+        for language: CodeLanguage,
+        excluding excludedId: UUID? = nil,
+        in db: Database
+    ) throws -> String {
         let base = language.displayName
         let count =
             try Int.fetchOne(
                 db,
-                sql: "SELECT COUNT(*) FROM snippets WHERE title LIKE ? AND deleted_at IS NULL",
-                arguments: ["\(base) %"]
+                sql: "SELECT COUNT(*) FROM snippets WHERE title LIKE ? AND deleted_at IS NULL AND id != ?",
+                arguments: ["\(base) %", excludedId?.uuidString ?? ""]
             ) ?? 0
         return "\(base) \(count + 1)"
     }

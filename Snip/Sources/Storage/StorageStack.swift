@@ -126,6 +126,29 @@ public final class StorageStack: Sendable {
         return result.snippet
     }
 
+    // MARK: - Language
+
+    /// Sets the main editor's language and detection mode, regenerating the
+    /// automatic title to match. Returns the updated snippet.
+    public func setMainLanguage(
+        snippetId: UUID,
+        language: CodeLanguage,
+        mode: LanguageMode
+    ) throws -> Snippet {
+        try snippets.setMainEditorLanguage(
+            snippetId: snippetId, language: language, mode: mode, regenerateTitle: true)
+    }
+
+    /// Sets the split editor's language and detection mode (independent of the
+    /// main editor; never affects the title). Returns the updated snippet.
+    public func setSplitLanguage(
+        snippetId: UUID,
+        language: CodeLanguage,
+        mode: LanguageMode
+    ) throws -> Snippet {
+        try snippets.setSplitEditorLanguage(snippetId: snippetId, language: language, mode: mode)
+    }
+
     // MARK: - Restoration
 
     /// Loads settings and UI state for startup restoration.
