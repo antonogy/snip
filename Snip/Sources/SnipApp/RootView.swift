@@ -1,5 +1,5 @@
-import SwiftUI
 import SharedModels
+import SwiftUI
 
 struct RootView: View {
     @Environment(AppModel.self) private var model
@@ -41,8 +41,16 @@ struct RootView: View {
     @ViewBuilder
     private func editorArea(model: AppModel) -> some View {
         @Bindable var model = model
-        let main = SnipEditorView(text: $model.editorText, wordWrap: model.settings.wordWrapEnabled)
-        let split = SnipEditorView(text: $model.splitEditorText, wordWrap: model.settings.wordWrapEnabled)
+        let main = SnipEditorView(
+            text: $model.editorText,
+            wordWrap: model.settings.wordWrapEnabled,
+            language: model.mainLanguage
+        )
+        let split = SnipEditorView(
+            text: $model.splitEditorText,
+            wordWrap: model.settings.wordWrapEnabled,
+            language: model.splitLanguage
+        )
 
         switch model.splitOrientation {
         case .none:

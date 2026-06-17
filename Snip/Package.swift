@@ -11,9 +11,20 @@ let package = Package(
         .library(name: "SharedModels", targets: ["SharedModels"]),
         .library(name: "SharedUtilities", targets: ["SharedUtilities"]),
         .library(name: "Storage", targets: ["Storage"]),
+        .library(name: "Highlighting", targets: ["Highlighting"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.0.0")
+        .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.0.0"),
+        .package(url: "https://github.com/ChimeHQ/SwiftTreeSitter.git", from: "0.8.0"),
+        .package(url: "https://github.com/tree-sitter/tree-sitter-javascript.git", branch: "master"),
+        .package(url: "https://github.com/tree-sitter/tree-sitter-typescript.git", branch: "master"),
+        .package(url: "https://github.com/tree-sitter/tree-sitter-json.git", branch: "master"),
+        .package(url: "https://github.com/tree-sitter/tree-sitter-html.git", branch: "master"),
+        .package(url: "https://github.com/tree-sitter/tree-sitter-css.git", branch: "master"),
+        .package(url: "https://github.com/tree-sitter/tree-sitter-python.git", branch: "master"),
+        .package(url: "https://github.com/tree-sitter/tree-sitter-bash.git", branch: "master"),
+        .package(url: "https://github.com/alex-pinkus/tree-sitter-swift.git", branch: "with-generated-files"),
+        .package(url: "https://github.com/DerekStride/tree-sitter-sql.git", branch: "gh-pages"),
     ],
     targets: [
         // Pure domain models. No dependencies — every other module may depend on it.
@@ -32,6 +43,47 @@ let package = Package(
             ]
         ),
 
+        // Vendored external scanners for the javascript, css, and python grammar
+        // packages. Their SPM manifests gate `scanner.c` behind a
+        // `FileManager.fileExists("src/scanner.c")` check that evaluates against
+        // the wrong directory under SwiftPM, silently dropping the scanner and
+        // leaving `tree_sitter_<lang>_external_scanner_*` undefined at link time.
+        // We compile those scanners (with the tree-sitter runtime headers) here.
+        //
+        // `NDEBUG` disables their `assert()`s. Tree-sitter scanners are meant to
+        // run with assertions off; several (e.g. the python scanner's
+        // `default: assert(false)` when classifying a string delimiter) are
+        // reachable on the partial/invalid input that is normal mid-typing and
+        // would otherwise `abort()` the whole app in a debug build.
+        .target(
+            name: "CTreeSitterScanners",
+            cSettings: [.define("NDEBUG")]
+        ),
+
+        // Syntax highlighting engine: tree-sitter grammars + highlight queries.
+        // Isolated module so tree-sitter's C/Sendable concerns never leak into
+        // SharedModels (which stays dependency-free) or the SwiftUI views.
+        .target(
+            name: "Highlighting",
+            dependencies: [
+                "SharedModels",
+                "CTreeSitterScanners",
+                .product(name: "SwiftTreeSitter", package: "SwiftTreeSitter"),
+                .product(name: "TreeSitterJavaScript", package: "tree-sitter-javascript"),
+                .product(name: "TreeSitterTypeScript", package: "tree-sitter-typescript"),
+                .product(name: "TreeSitterJSON", package: "tree-sitter-json"),
+                .product(name: "TreeSitterHTML", package: "tree-sitter-html"),
+                .product(name: "TreeSitterCSS", package: "tree-sitter-css"),
+                .product(name: "TreeSitterPython", package: "tree-sitter-python"),
+                .product(name: "TreeSitterBash", package: "tree-sitter-bash"),
+                .product(name: "TreeSitterSwift", package: "tree-sitter-swift"),
+                .product(name: "TreeSitterSql", package: "tree-sitter-sql"),
+            ],
+            resources: [
+                .copy("Resources/TreeSitter")
+            ]
+        ),
+
         // The macOS app: lifecycle, single window, startup restoration.
         .executableTarget(
             name: "SnipApp",
@@ -39,6 +91,7 @@ let package = Package(
                 "Storage",
                 "SharedModels",
                 "SharedUtilities",
+                "Highlighting",
             ]
         ),
 
@@ -55,6 +108,14 @@ let package = Package(
                 "Storage",
                 "SharedModels",
                 "SharedUtilities",
+            ]
+        ),
+
+        .testTarget(
+            name: "HighlightingTests",
+            dependencies: [
+                "Highlighting",
+                "SharedModels",
             ]
         ),
     ],

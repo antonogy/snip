@@ -1,4 +1,6 @@
 import AppKit
+import Highlighting
+import SharedModels
 import SwiftUI
 
 /// SwiftUI wrapper around a TextKit 1 `NSTextView` with a line-number gutter,
@@ -9,10 +11,16 @@ import SwiftUI
 /// host window. `EditorContainerView` lays the gutter and scroll view out
 /// side by side and keeps the gutter redrawing as the text scrolls.
 ///
+/// Syntax highlighting is applied as `.foregroundColor` attributes on the text
+/// storage (never by replacing the string), so it leaves the undo stack, the
+/// gutter's glyph geometry, and the current-line highlight untouched. Parsing
+/// runs off the main actor on the `SyntaxHighlighter` actor and is debounced.
+///
 /// Undo/redo comes for free from `NSTextView`'s built-in undo manager.
 struct SnipEditorView: NSViewRepresentable {
     @Binding var text: String
     var wordWrap: Bool
+    var language: CodeLanguage
 
     private static let defaultTypingAttributes: [NSAttributedString.Key: Any] = [
         .font: NSFont.monospacedSystemFont(ofSize: 13, weight: .regular),
@@ -51,6 +59,7 @@ struct SnipEditorView: NSViewRepresentable {
         context.coordinator.gutter = gutter
 
         applyWordWrap(wordWrap, to: textView, scrollView: scrollView)
+        context.coordinator.setLanguage(language, force: true)
         return EditorContainerView(scrollView: scrollView, gutter: gutter)
     }
 
@@ -73,9 +82,14 @@ struct SnipEditorView: NSViewRepresentable {
 
         if textView.string != text {
             // Preserve the undo stack: only replace content when it truly drifted.
+            // Setting `.string` clears all attributes, so re-highlight afterwards.
             textView.string = text
             textView.typingAttributes = Self.defaultTypingAttributes
+            context.coordinator.scheduleHighlight(immediate: true)
         }
+
+        // A new detected/selected language rebuilds the grammar and re-highlights.
+        context.coordinator.setLanguage(language)
 
         applyWordWrap(wordWrap, to: textView, scrollView: scrollView)
         container.gutter.needsDisplay = true
@@ -102,7 +116,8 @@ struct SnipEditorView: NSViewRepresentable {
         textView.isVerticallyResizable = true
         textView.autoresizingMask = [.width]
         textView.minSize = NSSize(width: 0, height: scrollView.contentSize.height)
-        textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        textView.maxSize = NSSize(
+            width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
 
         // Disable spell-check and autocorrection — this is a code editor.
         textView.isContinuousSpellCheckingEnabled = false
@@ -145,6 +160,11 @@ struct SnipEditorView: NSViewRepresentable {
         weak var textView: NSTextView?
         weak var gutter: LineNumberGutterView?
 
+        private let highlighter = SyntaxHighlighter()
+        private let theme = HighlightTheme()
+        private var currentLanguage: CodeLanguage = .plainText
+        private var highlightTask: Task<Void, Never>?
+
         init(_ parent: SnipEditorView) {
             self.parent = parent
         }
@@ -158,7 +178,67 @@ struct SnipEditorView: NSViewRepresentable {
                     parent.text = newText
                 }
                 gutter?.needsDisplay = true
+                scheduleHighlight()
             }
+        }
+
+        // MARK: - Syntax highlighting
+
+        /// Reconfigures the highlighter for `language` and re-highlights. A no-op
+        /// when the language is unchanged unless `force` is set (used on first
+        /// install, where `currentLanguage` still holds its default).
+        func setLanguage(_ language: CodeLanguage, force: Bool = false) {
+            guard force || language != currentLanguage else { return }
+            currentLanguage = language
+            highlightTask?.cancel()
+            highlightTask = Task { [weak self, highlighter] in
+                await highlighter.setLanguage(language)
+                self?.scheduleHighlight(immediate: true)
+            }
+        }
+
+        /// Parses the current text off the main actor and applies the resulting
+        /// colors. Debounced by default so bursts of keystrokes coalesce; pass
+        /// `immediate` to skip the delay (language change, content replacement).
+        func scheduleHighlight(immediate: Bool = false) {
+            highlightTask?.cancel()
+            guard let text = textView?.string else { return }
+            let expectedLength = (text as NSString).length
+            highlightTask = Task { [weak self, highlighter] in
+                if !immediate {
+                    try? await Task.sleep(for: .milliseconds(40))
+                    if Task.isCancelled { return }
+                }
+                let spans = await highlighter.highlights(for: text)
+                if Task.isCancelled { return }
+                self?.applySpans(spans, expectedLength: expectedLength)
+            }
+        }
+
+        /// Applies foreground colors to the text storage. Attribute-only edits,
+        /// wrapped in `begin/endEditing`, so the undo stack and the layout (and
+        /// thus the gutter and current-line highlight) are untouched. Skips stale
+        /// results whose source text length no longer matches the live document.
+        private func applySpans(_ spans: [HighlightSpan], expectedLength: Int) {
+            guard let textView, let storage = textView.textStorage else { return }
+            let length = storage.length
+            guard length == expectedLength else { return }
+
+            storage.beginEditing()
+            let full = NSRange(location: 0, length: length)
+            storage.removeAttribute(.foregroundColor, range: full)
+            storage.addAttribute(.foregroundColor, value: theme.color(for: .plain), range: full)
+            for span in spans where NSMaxRange(span.range) <= length && span.range.location >= 0 {
+                storage.addAttribute(.foregroundColor, value: theme.color(for: span.token), range: span.range)
+            }
+            storage.endEditing()
+
+            // An attribute-only edit doesn't reliably repaint a text view that
+            // isn't the first responder (e.g. on launch before the editor gains
+            // focus), so the colors would sit in storage unseen. Force the redraw
+            // explicitly instead of relying on a focus change to trigger it.
+            textView.needsDisplay = true
+            gutter?.needsDisplay = true
         }
     }
 }
