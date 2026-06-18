@@ -200,6 +200,8 @@ final class AppModel {
             editorText = ""
             splitEditorText = ""
             isLoadingContent = false
+            focusedTarget = .main
+            focusMainEditor()  // FR-15: a new snippet focuses the editor.
             scheduleAppStateSave()
         } catch StorageError.snippetLimitReached(let max) {
             flashStatus("Snippet limit reached (\(max)). Delete a snippet to make room.")
@@ -208,7 +210,10 @@ final class AppModel {
         }
     }
 
-    func selectSnippet(_ id: UUID) {
+    /// Switches the active snippet. `focusEditor` moves keyboard focus into the
+    /// editor — passed by explicit ⌘-number jumps so the user can type at once,
+    /// but left off for sidebar arrow/click navigation so focus stays in the list.
+    func selectSnippet(_ id: UUID, focusEditor: Bool = false) {
         guard id != currentSnippet?.id else { return }
         guard let stack, let snippet = snippets.first(where: { $0.id == id }) else { return }
         flushEditorContent()
@@ -222,6 +227,7 @@ final class AppModel {
             editorText = text
             splitEditorText = splitText
             isLoadingContent = false
+            if focusEditor { focusMainEditor() }
             scheduleAppStateSave()
         } catch {
             log.error("Failed to load snippet content: \(error.localizedDescription, privacy: .public)")
@@ -447,6 +453,14 @@ final class AppModel {
         case .main: mainTextView = textView
         case .split: splitTextView = textView
         }
+    }
+
+    /// Moves keyboard focus to the main editor's text view. Deferred to the next
+    /// main-actor turn so it lands after SwiftUI has processed the state change
+    /// that triggered it (create/switch); otherwise SwiftUI can reclaim focus.
+    private func focusMainEditor() {
+        let textView = mainTextView
+        Task { @MainActor in textView?.window?.makeFirstResponder(textView) }
     }
 
     /// The editor the Format menu command acts on. Falls back to `.main` when

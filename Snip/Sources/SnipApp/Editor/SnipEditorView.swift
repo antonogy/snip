@@ -30,6 +30,9 @@ struct SnipEditorView: NSViewRepresentable {
     /// Called when an edit (paste, drag-in, typing) is rejected for exceeding the
     /// content-size limit, so the pane can surface a non-modal hint (FR-21).
     var onContentLimitExceeded: () -> Void = {}
+    /// Whether this editor claims keyboard focus when installed. Only the main
+    /// editor does, so opening a split snippet keeps the cursor in the main editor.
+    var autoFocusOnInstall: Bool = true
 
     private static let defaultTypingAttributes: [NSAttributedString.Key: Any] = [
         .font: NSFont.monospacedSystemFont(ofSize: 13, weight: .regular),
@@ -51,6 +54,7 @@ struct SnipEditorView: NSViewRepresentable {
         // `.layoutManager` downgrades the view to TextKit 1, which the
         // line-number gutter needs for its glyph-based geometry queries.
         let textView = HighlightingTextView(frame: .zero)
+        textView.claimsFocusOnInstall = autoFocusOnInstall
         let layoutManager = textView.layoutManager
         layoutManager?.backgroundLayoutEnabled = false
         textView.textContainer?.widthTracksTextView = true

@@ -26,6 +26,7 @@ struct RootView: View {
                 banner(status)
             }
         }
+        .animation(.easeInOut(duration: 0.2), value: model.transientStatus)
         .onAppear {
             columnVisibility = model.appState.sidebarVisible ? .all : .detailOnly
         }
@@ -119,7 +120,7 @@ struct RootView: View {
                 Button("") {
                     let i = index - 1
                     if i < model.snippets.count {
-                        model.selectSnippet(model.snippets[i].id)
+                        model.selectSnippet(model.snippets[i].id, focusEditor: true)
                     }
                 }
                 .keyboardShortcut(KeyEquivalent(Character(String(index))), modifiers: .command)
