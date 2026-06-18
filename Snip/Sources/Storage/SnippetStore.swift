@@ -298,6 +298,100 @@ struct SnippetStore: Sendable {
         }
     }
 
+    // MARK: - Recovery & expiration
+
+    /// Returns every snippet currently in the recovery queue, newest deletion first.
+    func listRecoveryItems() throws -> [RecoveryItem] {
+        try database.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT id, snippet_id, title, deleted_at, purge_after
+                    FROM recovery_items
+                    ORDER BY deleted_at DESC
+                    """
+            ).map { row in
+                RecoveryItem(
+                    id: UUID(uuidString: row["id"]) ?? UUID(),
+                    snippetId: UUID(uuidString: row["snippet_id"]) ?? UUID(),
+                    title: row["title"],
+                    deletedAt: row["deleted_at"],
+                    purgeAfter: row["purge_after"]
+                )
+            }
+        }
+    }
+
+    /// Brings a soft-deleted snippet back to the active list: clears `deleted_at`,
+    /// removes its recovery row, and bumps `updated_at` so the expiry clock restarts
+    /// (otherwise a previously-stale snippet would re-expire on the next launch).
+    func restoreSnippet(id: UUID, now: Date = Date()) throws -> Snippet {
+        try database.write { db in
+            guard try SnippetRecord.fetchOne(db, key: id.uuidString) != nil else {
+                throw StorageError.missingSnippet(id.uuidString)
+            }
+            try db.execute(
+                sql: "UPDATE snippets SET deleted_at = NULL, updated_at = ? WHERE id = ?",
+                arguments: [now, id.uuidString]
+            )
+            try db.execute(
+                sql: "DELETE FROM recovery_items WHERE snippet_id = ?", arguments: [id.uuidString])
+            let refreshed = try SnippetRecord.fetchOne(db, key: id.uuidString)!
+            return try hydrate(refreshed, db)!
+        }
+    }
+
+    /// Soft-deletes every unpinned, non-deleted snippet whose most recent activity is
+    /// older than `expirationDays` (FR-1). "Activity" is the latest `updated_at` across
+    /// the snippet row and its editor documents — the autosave hot path only bumps the
+    /// editor's timestamp, so the snippet row alone would understate real edits.
+    /// Returns the number of snippets expired.
+    @discardableResult
+    func expireStaleSnippets(now: Date, expirationDays: Int, gracePeriodDays: Int) throws -> Int {
+        let cutoff = now.addingTimeInterval(-Double(expirationDays) * 24 * 60 * 60)
+        let purgeAfter = now.addingTimeInterval(Double(gracePeriodDays) * 24 * 60 * 60)
+        return try database.write { db in
+            let ids = try String.fetchAll(
+                db,
+                sql: """
+                    SELECT s.id FROM snippets s
+                    JOIN editor_documents m ON m.id = s.main_editor_id
+                    LEFT JOIN editor_documents sp ON sp.id = s.split_editor_id
+                    WHERE s.deleted_at IS NULL AND s.is_pinned = 0
+                      AND MAX(s.updated_at, m.updated_at, COALESCE(sp.updated_at, s.updated_at)) < ?
+                    """,
+                arguments: [cutoff]
+            )
+            for id in ids {
+                guard let sr = try SnippetRecord.fetchOne(db, key: id) else { continue }
+                try db.execute(
+                    sql: "UPDATE snippets SET deleted_at = ?, updated_at = ? WHERE id = ?",
+                    arguments: [now, now, id]
+                )
+                try db.execute(
+                    sql: """
+                        INSERT INTO recovery_items (id, snippet_id, title, deleted_at, purge_after)
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                    arguments: [UUID().uuidString, id, sr.title, now, purgeAfter]
+                )
+            }
+            return ids.count
+        }
+    }
+
+    /// Returns the snippet ids of recovery rows whose retention window has elapsed,
+    /// so the caller can permanently `purgeSnippet` each.
+    func expiredRecoverySnippetIds(now: Date) throws -> [UUID] {
+        try database.read { db in
+            try String.fetchAll(
+                db,
+                sql: "SELECT snippet_id FROM recovery_items WHERE purge_after <= ?",
+                arguments: [now]
+            ).compactMap { UUID(uuidString: $0) }
+        }
+    }
+
     func setPinned(id: UUID, isPinned: Bool, at date: Date = Date()) throws {
         try database.write { db in
             try db.execute(
@@ -405,7 +499,8 @@ struct SnippetStore: Sendable {
                 throw StorageError.missingSnippet(snippetId.uuidString)
             }
             try db.execute(
-                sql: "UPDATE editor_documents SET language = ?, language_mode = ?, updated_at = ? WHERE id = ?",
+                sql:
+                    "UPDATE editor_documents SET language = ?, language_mode = ?, updated_at = ? WHERE id = ?",
                 arguments: [language.rawValue, mode.rawValue, now, sr.mainEditorId]
             )
             if regenerateTitle, sr.titleSource == SnippetTitleSource.automatic.rawValue {
@@ -436,7 +531,8 @@ struct SnippetStore: Sendable {
                 return try hydrate(sr, db)!
             }
             try db.execute(
-                sql: "UPDATE editor_documents SET language = ?, language_mode = ?, updated_at = ? WHERE id = ?",
+                sql:
+                    "UPDATE editor_documents SET language = ?, language_mode = ?, updated_at = ? WHERE id = ?",
                 arguments: [language.rawValue, mode.rawValue, now, splitId]
             )
             let refreshed = try SnippetRecord.fetchOne(db, key: snippetId.uuidString)!

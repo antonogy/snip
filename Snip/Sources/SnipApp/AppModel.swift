@@ -2,11 +2,11 @@ import AppKit
 import Formatting
 import Foundation
 import Observation
-import os
 import SharedModels
 import SharedUtilities
 import Storage
 import SwiftUI
+import os
 
 /// Which editor a content-targeted command (e.g. Format) acts on.
 enum EditorTarget {
@@ -23,6 +23,11 @@ final class AppModel {
 
     private(set) var snippets: [Snippet] = []
     private(set) var currentSnippet: Snippet?
+
+    /// Deleted/expired snippets awaiting purge; populated when the Recovery sheet opens.
+    private(set) var recoveryItems: [RecoveryItem] = []
+    /// Drives the Recovery sheet. Settable so a menu command can present it.
+    var isRecoveryPresented = false
 
     var editorText: String = "" {
         didSet {
@@ -79,6 +84,10 @@ final class AppModel {
             // a failure here doesn't prevent the app from launching with a healthy stack.
             do {
                 try stack.purgeEmptySnippets()  // FR-1: drop snippets left empty last session
+                try stack.purgeExpiredRecoveryItems()  // FR-11: drop items past retention
+                try stack.expireStaleSnippets(  // FR-1: move stale unpinned to Recovery
+                    expirationDays: restored.settings.expirationDays,
+                    gracePeriodDays: restored.settings.deletionGracePeriodDays)
                 var list = try stack.listSnippets()
                 if list.isEmpty {
                     _ = try stack.loadOrBootstrap()
@@ -235,6 +244,39 @@ final class AppModel {
             refreshSnippets()
         } catch {
             log.error("Failed to toggle pin: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    // MARK: - Recovery
+
+    /// Loads the recovery queue and presents the Recovery sheet.
+    func showRecovery() {
+        loadRecoveryItems()
+        isRecoveryPresented = true
+    }
+
+    /// Refreshes the in-memory recovery list from storage.
+    func loadRecoveryItems() {
+        guard let stack else { return }
+        do {
+            recoveryItems = try stack.listRecoveryItems()
+        } catch {
+            log.error("Failed to load recovery items: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Restores a snippet from Recovery and makes it the active selection.
+    func restoreSnippet(_ snippetId: UUID) {
+        guard let stack else { return }
+        do {
+            let restored = try stack.restoreSnippet(id: snippetId)
+            refreshSnippets()
+            loadRecoveryItems()
+            if snippets.contains(where: { $0.id == restored.id }) {
+                selectSnippet(restored.id)
+            }
+        } catch {
+            log.error("Failed to restore snippet: \(error.localizedDescription, privacy: .public)")
         }
     }
 

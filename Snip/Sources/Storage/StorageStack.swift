@@ -115,6 +115,45 @@ public final class StorageStack: Sendable {
         return purged
     }
 
+    // MARK: - Recovery & expiration
+
+    /// Returns every snippet in the recovery queue (deleted or expired), newest first.
+    public func listRecoveryItems() throws -> [RecoveryItem] {
+        try snippets.listRecoveryItems()
+    }
+
+    /// Restores a soft-deleted snippet to the active list, returning it hydrated.
+    public func restoreSnippet(id: UUID) throws -> Snippet {
+        try snippets.restoreSnippet(id: id)
+    }
+
+    /// Soft-deletes unpinned snippets idle beyond `expirationDays` into Recovery (FR-1).
+    /// Returns the number expired. Intended to run once at launch as a cleanup job.
+    @discardableResult
+    public func expireStaleSnippets(
+        expirationDays: Int,
+        gracePeriodDays: Int = 30,
+        now: Date = Date()
+    ) throws -> Int {
+        try snippets.expireStaleSnippets(
+            now: now, expirationDays: expirationDays, gracePeriodDays: gracePeriodDays)
+    }
+
+    /// Permanently removes recovery items past their retention window, deleting their
+    /// snippets, editor rows, and backing content files (FR-11). Returns the count
+    /// purged. Intended to run once at launch as a cleanup job.
+    @discardableResult
+    public func purgeExpiredRecoveryItems(now: Date = Date()) throws -> Int {
+        var purged = 0
+        for id in try snippets.expiredRecoverySnippetIds(now: now) {
+            for path in try snippets.purgeSnippet(id: id) {
+                try content.remove(relativePath: path)
+            }
+            purged += 1
+        }
+        return purged
+    }
+
     /// Toggles the pinned state of a snippet, which affects list ordering.
     public func setSnippetPinned(id: UUID, isPinned: Bool) throws {
         try snippets.setPinned(id: id, isPinned: isPinned)
