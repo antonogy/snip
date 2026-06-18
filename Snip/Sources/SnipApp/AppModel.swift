@@ -394,8 +394,9 @@ final class AppModel {
     }
 
     /// Whether "Format Code" is available right now (drives the menu's enabled
-    /// state). Plain Text has no formatter.
-    var canFormat: Bool { currentSnippet != nil && focusedLanguage != .plainText }
+    /// state). A language is formattable only when a built-in formatter exists
+    /// for it; otherwise the feature is silently disabled.
+    var canFormat: Bool { currentSnippet != nil && formatter.supports(focusedLanguage) }
 
     /// Formats the focused editor (FR-7). Runs the formatter off the main actor,
     /// then replaces the content through the undo-registering path. Surfaces a
@@ -404,8 +405,8 @@ final class AppModel {
         guard !isFormatting, currentSnippet != nil else { return }
         let target = effectiveFocusTarget
         let language = focusedLanguage
-        guard language != .plainText else {
-            setFormatError(FormatterError.unsupportedLanguage(.plainText).userFacingMessage)
+        guard formatter.supports(language) else {
+            setFormatError(FormatterError.unsupportedLanguage(language).userFacingMessage)
             return
         }
         let source = focusedTextView?.string ?? (target == .main ? editorText : splitEditorText)

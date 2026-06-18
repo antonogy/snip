@@ -39,54 +39,26 @@ struct SwiftFormattingTests {
 struct FormatterRoutingTests {
     let formatter = CodeFormatter()
 
-    @Test("Plain Text has no formatter")
-    func plainTextUnsupported() async throws {
-        await #expect(throws: FormatterError.unsupportedLanguage(.plainText)) {
-            try await formatter.format("anything", language: .plainText)
-        }
+    @Test(
+        "Languages with a built-in formatter are supported",
+        arguments: [
+            CodeLanguage.swift, .javascript, .typescript, .json, .css, .html,
+        ]
+    )
+    func supportedLanguages(language: CodeLanguage) {
+        #expect(formatter.supports(language))
     }
 
-    @Test("Blank input is returned unchanged without spawning a tool")
-    func blankInputNoOp() throws {
-        let spec = ProcessFormatter.CommandSpec(executable: "definitely-not-installed", arguments: [])
-        let result = try ProcessFormatter.run(spec: spec, input: "   \n\t", language: .bash)
-        #expect(result == "   \n\t")
-    }
-
-    @Test("Missing CLI tool surfaces toolNotFound")
-    func missingToolErrors() throws {
-        let spec = ProcessFormatter.CommandSpec(executable: "snip-no-such-formatter", arguments: [])
-        #expect(throws: FormatterError.toolNotFound(tool: "snip-no-such-formatter", language: .bash)) {
-            try ProcessFormatter.run(spec: spec, input: "echo hi", language: .bash)
-        }
-    }
-}
-
-/// Exercises the process runner's PATH resolution, stdin→stdout piping, and
-/// exit-code mapping using tools present on every macOS, so the machinery is
-/// covered even when no real formatter CLI is installed.
-@Suite("Process runner machinery")
-struct ProcessRunnerTests {
-    @Test("Pipes input through a stdin→stdout tool and returns its output")
-    func pipesThroughTool() throws {
-        // `sed` reads stdin, applies the substitution, writes stdout.
-        let spec = ProcessFormatter.CommandSpec(executable: "sed", arguments: ["s/foo/bar/g"])
-        let result = try ProcessFormatter.run(spec: spec, input: "foo foo\n", language: .bash)
-        #expect(result == "bar bar\n")
-    }
-
-    @Test("Non-zero exit maps to executionFailed with stderr")
-    func nonZeroExitErrors() throws {
-        // `sh -c 'echo boom >&2; exit 1'` exits non-zero and writes to stderr.
-        let spec = ProcessFormatter.CommandSpec(
-            executable: "sh", arguments: ["-c", "echo boom >&2; exit 1"])
-        #expect {
-            try ProcessFormatter.run(spec: spec, input: "ignored", language: .bash)
-        } throws: { error in
-            guard case .executionFailed(let tool, let message) = error as? FormatterError else {
-                return false
-            }
-            return tool == "sh" && message.contains("boom")
+    @Test(
+        "Languages without a built-in formatter are unsupported",
+        arguments: [
+            CodeLanguage.sql, .python, .bash, .plainText,
+        ]
+    )
+    func unsupportedLanguages(language: CodeLanguage) async throws {
+        #expect(!formatter.supports(language))
+        await #expect(throws: FormatterError.unsupportedLanguage(language)) {
+            try await formatter.format("anything", language: language)
         }
     }
 }
@@ -145,40 +117,5 @@ struct PrettierFormattingTests {
         let once = try await formatter.format(messy, language: language)
         let twice = try await formatter.format(once, language: language)
         #expect(once == twice)
-    }
-}
-
-@Suite("CLI command registry")
-struct CommandRegistryTests {
-    @Test(
-        "Each CLI language maps to the expected tool invocation",
-        arguments: [
-            (CodeLanguage.sql, "sql-formatter", []),
-            (.python, "black", ["-q", "-"]),
-            (.bash, "shfmt", []),
-        ]
-    )
-    func mapsLanguageToCommand(language: CodeLanguage, executable: String, arguments: [String]) {
-        let spec = ProcessFormatter.commandSpec(for: language)
-        #expect(spec?.executable == executable)
-        #expect(spec?.arguments == arguments)
-    }
-
-    @Test(
-        "In-process and unsupported languages have no CLI command",
-        arguments: [
-            CodeLanguage.swift, .plainText, .javascript, .typescript, .json, .html, .css,
-        ]
-    )
-    func noCommandForInProcessLanguages(language: CodeLanguage) {
-        #expect(ProcessFormatter.commandSpec(for: language) == nil)
-    }
-
-    @Test("Augmented PATH includes Homebrew and stays free of duplicates")
-    func augmentedPathIncludesHomebrew() {
-        let path = ProcessFormatter.augmentedPath()
-        let dirs = path.split(separator: ":").map(String.init)
-        #expect(dirs.contains("/opt/homebrew/bin"))
-        #expect(Set(dirs).count == dirs.count)
     }
 }
