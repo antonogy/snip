@@ -11,6 +11,7 @@
 		BFDE39792FE05E9100399CA5 /* SharedUtilities in Frameworks */ = {isa = PBXBuildFile; productRef = BFDE1A0000001003000000A5 /* SharedUtilities */; };
 		BFDE397A2FE05E9100399CA5 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = BFDE1A0000001004000000A5 /* Storage */; };
 		BFDE397B2FE05E9100399CA5 /* Highlighting in Frameworks */ = {isa = PBXBuildFile; productRef = BFDE1A0000001005000000A5 /* Highlighting */; };
+		BFDE397C2FE05E9100399CA5 /* Formatting in Frameworks */ = {isa = PBXBuildFile; productRef = BFDE1A0000001006000000A5 /* Formatting */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -91,6 +92,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BFDE397C2FE05E9100399CA5 /* Formatting in Frameworks */,
 				BFDE397B2FE05E9100399CA5 /* Highlighting in Frameworks */,
 				BFDE397A2FE05E9100399CA5 /* Storage in Frameworks */,
 				BFDE39792FE05E9100399CA5 /* SharedUtilities in Frameworks */,
@@ -298,6 +300,7 @@
 				BFDE1A0000001003000000A5 /* SharedUtilities */,
 				BFDE1A0000001004000000A5 /* Storage */,
 				BFDE1A0000001005000000A5 /* Highlighting */,
+				BFDE1A0000001006000000A5 /* Formatting */,
 			);
 			productName = Snip;
 			productReference = BFDEBA112FE05A3D00399CA5 /* Snip.app */;
@@ -589,6 +592,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = BFDE1A0000001001000000A5 /* XCLocalSwiftPackageReference "Snip" */;
 			productName = Highlighting;
+		};
+		BFDE1A0000001006000000A5 /* Formatting */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BFDE1A0000001001000000A5 /* XCLocalSwiftPackageReference "Snip" */;
+			productName = Formatting;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

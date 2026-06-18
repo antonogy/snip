@@ -21,6 +21,9 @@ struct SnipEditorView: NSViewRepresentable {
     @Binding var text: String
     var wordWrap: Bool
     var language: CodeLanguage
+    /// Called with the backing text view when it gains focus, so `AppModel` can
+    /// target content commands (e.g. Format) at the editor the user is in.
+    var onFocus: (HighlightingTextView) -> Void = { _ in }
 
     private static let defaultTypingAttributes: [NSAttributedString.Key: Any] = [
         .font: NSFont.monospacedSystemFont(ofSize: 13, weight: .regular),
@@ -51,6 +54,10 @@ struct SnipEditorView: NSViewRepresentable {
         // characters inherit the correct font and color.
         textView.typingAttributes = Self.defaultTypingAttributes
         textView.delegate = context.coordinator
+        textView.onBecomeFirstResponder = { [weak textView] in
+            guard let textView else { return }
+            context.coordinator.parent.onFocus(textView)
+        }
         context.coordinator.textView = textView
 
         scrollView.documentView = textView

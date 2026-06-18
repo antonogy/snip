@@ -20,6 +20,8 @@ struct RootView: View {
         .overlay(alignment: .bottom) {
             if let error = model.initializationError {
                 storageWarning(error)
+            } else if let formatError = model.formatError {
+                banner(formatError)
             }
         }
         .onAppear {
@@ -44,12 +46,14 @@ struct RootView: View {
         let main = SnipEditorView(
             text: $model.editorText,
             wordWrap: model.settings.wordWrapEnabled,
-            language: model.mainLanguage
+            language: model.mainLanguage,
+            onFocus: { model.focusEditor(.main, $0) }
         )
         let split = SnipEditorView(
             text: $model.splitEditorText,
             wordWrap: model.settings.wordWrapEnabled,
-            language: model.splitLanguage
+            language: model.splitLanguage,
+            onFocus: { model.focusEditor(.split, $0) }
         )
 
         switch model.splitOrientation {
@@ -122,15 +126,22 @@ struct RootView: View {
 
     @ViewBuilder
     private func storageWarning(_ error: Error) -> some View {
+        banner("Storage unavailable — changes won't be saved.")
+    }
+
+    /// A transient, non-modal status capsule pinned to the bottom of the editor.
+    @ViewBuilder
+    private func banner(_ message: String) -> some View {
         HStack(spacing: 6) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(.yellow)
-            Text("Storage unavailable — changes won't be saved.")
+            Text(message)
                 .font(.caption)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
         .padding(8)
+        .transition(.opacity)
     }
 }

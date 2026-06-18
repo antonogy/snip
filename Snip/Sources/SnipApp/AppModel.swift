@@ -1,4 +1,5 @@
 import AppKit
+import Formatting
 import Foundation
 import Observation
 import os
@@ -6,6 +7,12 @@ import SharedModels
 import SharedUtilities
 import Storage
 import SwiftUI
+
+/// Which editor a content-targeted command (e.g. Format) acts on.
+enum EditorTarget {
+    case main
+    case split
+}
 
 @MainActor
 @Observable
@@ -31,6 +38,14 @@ final class AppModel {
         }
     }
 
+    /// Which editor last gained focus; targets the Format command. Forced back to
+    /// `.main` whenever there is no split (see `effectiveFocusTarget`).
+    private(set) var focusedTarget: EditorTarget = .main
+
+    /// Transient, user-facing formatting error message. Auto-clears after a few
+    /// seconds; drives a non-modal banner in `RootView`.
+    private(set) var formatError: String?
+
     /// Whether the current snippet has a split editor.
     var hasSplit: Bool { currentSnippet?.splitEditor != nil }
 
@@ -45,6 +60,10 @@ final class AppModel {
     @ObservationIgnored private var editorSaveTask: Task<Void, Never>?
     @ObservationIgnored private var splitSaveTask: Task<Void, Never>?
     @ObservationIgnored private var isLoadingContent = false
+    @ObservationIgnored private weak var focusedTextView: HighlightingTextView?
+    @ObservationIgnored private let formatter = CodeFormatter()
+    @ObservationIgnored private var isFormatting = false
+    @ObservationIgnored private var formatErrorTask: Task<Void, Never>?
     @ObservationIgnored private let log = AppLog.make("app.model")
 
     init(directories: AppDirectories? = nil) {
@@ -257,6 +276,7 @@ final class AppModel {
         do {
             let updated = try stack.closeSplit(snippetId: id)
             splitSaveTask?.cancel()
+            focusedTarget = .main
             currentSnippet = updated
             isLoadingContent = true
             splitEditorText = ""
@@ -352,6 +372,76 @@ final class AppModel {
             refreshSnippets()
         } catch {
             log.error("Failed to set split language: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    // MARK: - Formatting
+
+    /// Records which editor gained focus and a reference to its text view, so
+    /// `formatFocusedEditor()` knows where to read from and write back to.
+    func focusEditor(_ target: EditorTarget, _ textView: HighlightingTextView) {
+        focusedTarget = target
+        focusedTextView = textView
+    }
+
+    /// The editor the Format command acts on. Falls back to `.main` when there
+    /// is no split, regardless of any stale focus.
+    private var effectiveFocusTarget: EditorTarget { hasSplit ? focusedTarget : .main }
+
+    /// Language of the editor the Format command would act on.
+    private var focusedLanguage: CodeLanguage {
+        effectiveFocusTarget == .main ? mainLanguage : splitLanguage
+    }
+
+    /// Whether "Format Code" is available right now (drives the menu's enabled
+    /// state). Plain Text has no formatter.
+    var canFormat: Bool { currentSnippet != nil && focusedLanguage != .plainText }
+
+    /// Formats the focused editor (FR-7). Runs the formatter off the main actor,
+    /// then replaces the content through the undo-registering path. Surfaces a
+    /// transient banner on failure. Manual only — never triggered automatically.
+    func formatFocusedEditor() {
+        guard !isFormatting, currentSnippet != nil else { return }
+        let target = effectiveFocusTarget
+        let language = focusedLanguage
+        guard language != .plainText else {
+            setFormatError(FormatterError.unsupportedLanguage(.plainText).userFacingMessage)
+            return
+        }
+        let source = focusedTextView?.string ?? (target == .main ? editorText : splitEditorText)
+        guard !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+
+        isFormatting = true
+        Task { [weak self, formatter] in
+            defer { self?.isFormatting = false }
+            do {
+                let result = try await formatter.format(source, language: language)
+                guard let self else { return }
+                if let textView = self.focusedTextView {
+                    textView.replaceAllText(result)
+                } else if target == .main {
+                    self.editorText = result
+                } else {
+                    self.splitEditorText = result
+                }
+            } catch {
+                let message =
+                    (error as? FormatterError)?.userFacingMessage ?? "Formatting failed."
+                self?.setFormatError(message)
+            }
+        }
+    }
+
+    /// Shows a transient, non-modal error message that clears itself after a few
+    /// seconds (matching the product's "non-blocking" principle).
+    private func setFormatError(_ message: String) {
+        formatErrorTask?.cancel()
+        formatError = message
+        log.error("Format failed: \(message, privacy: .public)")
+        formatErrorTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            self?.formatError = nil
         }
     }
 

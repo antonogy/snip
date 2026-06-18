@@ -12,9 +12,12 @@ let package = Package(
         .library(name: "SharedUtilities", targets: ["SharedUtilities"]),
         .library(name: "Storage", targets: ["Storage"]),
         .library(name: "Highlighting", targets: ["Highlighting"]),
+        .library(name: "Formatting", targets: ["Formatting"]),
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.0.0"),
+        .package(url: "https://github.com/apple/swift-format.git", from: "600.0.0"),
+        .package(url: "https://github.com/simonbs/Prettier.git", from: "0.2.1"),
         .package(url: "https://github.com/ChimeHQ/SwiftTreeSitter.git", from: "0.8.0"),
         .package(url: "https://github.com/tree-sitter/tree-sitter-javascript.git", branch: "master"),
         .package(url: "https://github.com/tree-sitter/tree-sitter-typescript.git", branch: "master"),
@@ -84,6 +87,22 @@ let package = Package(
             ]
         ),
 
+        // Manual code formatting (FR-7). Swift formats in-process via the
+        // swift-format library; the other languages shell out to their canonical
+        // CLI. Isolated module so process/IO concerns never leak into the views.
+        .target(
+            name: "Formatting",
+            dependencies: [
+                "SharedModels",
+                .product(name: "SwiftFormat", package: "swift-format"),
+                .product(name: "Prettier", package: "Prettier"),
+                .product(name: "PrettierBabel", package: "Prettier"),
+                .product(name: "PrettierTypeScript", package: "Prettier"),
+                .product(name: "PrettierPostCSS", package: "Prettier"),
+                .product(name: "PrettierHTML", package: "Prettier"),
+            ]
+        ),
+
         // The macOS app: lifecycle, single window, startup restoration.
         .executableTarget(
             name: "SnipApp",
@@ -92,6 +111,7 @@ let package = Package(
                 "SharedModels",
                 "SharedUtilities",
                 "Highlighting",
+                "Formatting",
             ]
         ),
 
@@ -115,6 +135,14 @@ let package = Package(
             name: "HighlightingTests",
             dependencies: [
                 "Highlighting",
+                "SharedModels",
+            ]
+        ),
+
+        .testTarget(
+            name: "FormattingTests",
+            dependencies: [
+                "Formatting",
                 "SharedModels",
             ]
         ),

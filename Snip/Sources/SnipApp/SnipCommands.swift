@@ -7,6 +7,11 @@ struct SnipCommands: Commands {
     let model: AppModel
 
     var body: some Commands {
+        CommandMenu("Editor") {
+            Button("Format Code") { model.formatFocusedEditor() }
+                .keyboardShortcut("f", modifiers: [.control, .option])
+                .disabled(!model.canFormat)
+        }
         CommandMenu("View") {
             Button("Split Right") { model.splitRight() }
                 .keyboardShortcut("\\", modifiers: .command)

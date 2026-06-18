@@ -6,6 +6,27 @@ import AppKit
 /// present.
 final class HighlightingTextView: NSTextView {
 
+    /// Fired when this view becomes first responder, so the app can track which
+    /// editor (main vs split) is focused for content-targeted commands like Format.
+    var onBecomeFirstResponder: (() -> Void)?
+
+    /// Replaces the entire document through the standard editing path so the
+    /// change is registered with the undo manager (⌘Z reverts it in one step)
+    /// and `textDidChange` fires — driving the binding update, autosave, and
+    /// re-highlight. Used by Format Code.
+    func replaceAllText(_ newText: String) {
+        let full = NSRange(location: 0, length: (string as NSString).length)
+        guard newText != string, shouldChangeText(in: full, replacementString: newText) else { return }
+        textStorage?.replaceCharacters(in: full, with: newText)
+        didChangeText()
+    }
+
+    override func becomeFirstResponder() -> Bool {
+        let became = super.becomeFirstResponder()
+        if became { onBecomeFirstResponder?() }
+        return became
+    }
+
     override func drawBackground(in rect: NSRect) {
         super.drawBackground(in: rect)
 
