@@ -207,7 +207,7 @@ Application launches and restores state.
 * SQLite initialization
 * migrations
 * JSON configuration loading
-* startup restoration
+* startup restoration (triggers the empty-snippet purge — see Milestone 10)
 
 ## Exit Criteria
 
@@ -407,6 +407,7 @@ Lifecycle management complete.
 * recovery
 * restore
 * cleanup
+* empty-snippet purge on launch (permanent, bypasses Recovery)
 
 ## Deliverables
 

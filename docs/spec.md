@@ -172,6 +172,13 @@ intelligent.
 * unpinned snippets expire after inactivity period
 * snippets may be manually deleted
 * expired snippets may be manually cleared
+* on launch, snippets whose editors are all empty are removed
+
+A snippet counts as empty only when its main editor and its split editor (if
+present) are both empty.
+
+Empty snippets are permanently discarded on launch, not moved to Recovery —
+there is nothing to recover.
 
 Default expiration:
 
@@ -446,6 +453,9 @@ Startup should not block on:
 * sync
 * detection
 * background tasks
+
+The launch-time empty-snippet purge (FR-1) is metadata-only — no content reads —
+and runs as part of restore without delaying first paint.
 
 ---
 
