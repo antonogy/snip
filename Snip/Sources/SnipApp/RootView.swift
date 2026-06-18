@@ -81,7 +81,8 @@ struct RootView: View {
                 Image(systemName: "square.and.pencil")
             }
             .help(
-                model.canCreateSnippet ? "New Snippet" : "Snippet limit reached (\(Limits.maxActiveSnippets))"
+                model.canCreateSnippet
+                    ? "New Snippet (⌘N)" : "Snippet limit reached (\(Limits.maxActiveSnippets))"
             )
             .disabled(!model.canCreateSnippet)
 
@@ -91,7 +92,7 @@ struct RootView: View {
             } label: {
                 Image(systemName: isPinned ? "pin.slash" : "pin")
             }
-            .help(isPinned ? "Unpin" : "Pin")
+            .help(isPinned ? "Unpin (⌘P)" : "Pin (⌘P)")
             .disabled(model.currentSnippet == nil)
 
             Button {
@@ -114,6 +115,11 @@ struct RootView: View {
             .keyboardShortcut(.delete, modifiers: .command)
             Button("") { model.toggleSidebar() }
                 .keyboardShortcut("b", modifiers: .command)
+            Button("") {
+                if let id = model.currentSnippet?.id { model.togglePin(id) }
+            }
+            .keyboardShortcut("p", modifiers: .command)
+            .disabled(model.currentSnippet == nil)
             Button("") { model.findFocusedEditor() }
                 .keyboardShortcut("f", modifiers: .command)
             ForEach(1..<10, id: \.self) { index in
