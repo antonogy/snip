@@ -21,6 +21,8 @@ struct SnipCommands: Commands {
             Button("Close Split") { model.closeSplit() }
                 .keyboardShortcut("\\", modifiers: [.command, .option])
                 .disabled(!model.hasSplit)
+            Divider()
+            Button("Recovery…") { model.showRecovery() }
         }
     }
 }

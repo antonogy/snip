@@ -482,3 +482,132 @@ private func makeTempDirectories() throws -> AppDirectories {
     #expect(aSwift.title == "Swift 1")
     #expect(bSwift.title == "Swift 2")
 }
+
+// MARK: - Milestone 10: Expiration & Recovery
+
+/// Backdates a snippet's and its main editor's `updated_at` so it reads as stale.
+private func backdate(_ stack: StorageStack, snippet: Snippet, to date: Date) throws {
+    try stack.database.write { db in
+        try db.execute(
+            sql: "UPDATE snippets SET updated_at = ? WHERE id = ?",
+            arguments: [date, snippet.id.uuidString])
+        try db.execute(
+            sql: "UPDATE editor_documents SET updated_at = ? WHERE id = ?",
+            arguments: [date, snippet.mainEditor.id.uuidString])
+    }
+}
+
+private func recoveryCount(_ stack: StorageStack, snippetId: UUID) throws -> Int {
+    try stack.database.read { db in
+        try Int.fetchOne(
+            db,
+            sql: "SELECT COUNT(*) FROM recovery_items WHERE snippet_id = ?",
+            arguments: [snippetId.uuidString]
+        ) ?? 0
+    }
+}
+
+@Test func expireStaleSnippetsMovesUnpinnedToRecovery() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let snippet = try stack.createSnippet()
+    try backdate(stack, snippet: snippet, to: Date().addingTimeInterval(-100 * 86_400))
+
+    let expired = try stack.expireStaleSnippets(expirationDays: 7, gracePeriodDays: 30)
+    #expect(expired == 1)
+    #expect(!(try stack.listSnippets()).contains(where: { $0.id == snippet.id }))
+    #expect(try recoveryCount(stack, snippetId: snippet.id) == 1)
+}
+
+@Test func expireStaleSnippetsKeepsPinnedAndFresh() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let pinned = try stack.createSnippet()
+    let fresh = try stack.createSnippet()
+    // Pin first, then backdate: pinned snippets are exempt regardless of age.
+    try stack.setSnippetPinned(id: pinned.id, isPinned: true)
+    try backdate(stack, snippet: pinned, to: Date().addingTimeInterval(-100 * 86_400))
+
+    let expired = try stack.expireStaleSnippets(expirationDays: 7, gracePeriodDays: 30)
+    #expect(expired == 0)
+    let list = try stack.listSnippets()
+    #expect(list.contains(where: { $0.id == pinned.id }))
+    #expect(list.contains(where: { $0.id == fresh.id }))
+}
+
+@Test func restoreSnippetReturnsItToListAndClearsRecovery() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let snippet = try stack.createSnippet()
+    try stack.deleteSnippet(id: snippet.id)
+
+    let restored = try stack.restoreSnippet(id: snippet.id)
+    #expect(restored.id == snippet.id)
+    #expect(restored.deletedAt == nil)
+    #expect((try stack.listSnippets()).contains(where: { $0.id == snippet.id }))
+    #expect(try recoveryCount(stack, snippetId: snippet.id) == 0)
+}
+
+@Test func purgeExpiredRecoveryItemsRemovesPastRetention() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let stale = try stack.createSnippet()
+    let recent = try stack.createSnippet()
+    try stack.saveEditorContent("keep me\n", for: stale.mainEditor)
+    let stalePath = ContentStore(directories: directories)
+        .url(forRelativePath: stale.mainEditor.contentFilePath).path
+
+    try stack.deleteSnippet(id: stale.id, gracePeriodDays: 30)
+    try stack.deleteSnippet(id: recent.id, gracePeriodDays: 30)
+    // Push the stale item's retention window into the past.
+    try stack.database.write { db in
+        try db.execute(
+            sql: "UPDATE recovery_items SET purge_after = ? WHERE snippet_id = ?",
+            arguments: [Date().addingTimeInterval(-86_400), stale.id.uuidString])
+    }
+
+    let purged = try stack.purgeExpiredRecoveryItems()
+    #expect(purged == 1)
+    #expect(!FileManager.default.fileExists(atPath: stalePath))
+    #expect(try recoveryCount(stack, snippetId: stale.id) == 0)
+    #expect(try recoveryCount(stack, snippetId: recent.id) == 1)
+
+    let editorExists = try stack.database.read { db in
+        try Bool.fetchOne(
+            db,
+            sql: "SELECT EXISTS(SELECT 1 FROM editor_documents WHERE id = ?)",
+            arguments: [stale.mainEditor.id.uuidString]
+        ) ?? false
+    }
+    #expect(editorExists == false)
+}
+
+@Test func listRecoveryItemsReturnsDeletedNewestFirst() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let older = try stack.createSnippet()
+    let newer = try stack.createSnippet()
+    try stack.deleteSnippet(id: older.id)
+    try stack.deleteSnippet(id: newer.id)
+    // Make the ordering deterministic regardless of clock resolution.
+    try stack.database.write { db in
+        try db.execute(
+            sql: "UPDATE recovery_items SET deleted_at = ? WHERE snippet_id = ?",
+            arguments: [Date().addingTimeInterval(-3_600), older.id.uuidString])
+    }
+
+    let items = try stack.listRecoveryItems()
+    #expect(items.count == 2)
+    #expect(items.first?.snippetId == newer.id)
+    #expect(items.last?.snippetId == older.id)
+}

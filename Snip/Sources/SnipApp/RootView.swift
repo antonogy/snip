@@ -13,7 +13,17 @@ struct RootView: View {
         } detail: {
             editorArea(model: model)
                 .frame(minWidth: 400, minHeight: 300)
-                .toolbar { languageToolbar(model: model) }
+                .toolbar {
+                    languageToolbar(model: model)
+                    ToolbarItem(placement: .automatic) {
+                        Button {
+                            model.showRecovery()
+                        } label: {
+                            Image(systemName: "clock.arrow.circlepath")
+                        }
+                        .help("Recovery")
+                    }
+                }
         }
         .frame(minWidth: 560, minHeight: 360)
         .background(WindowAccessor { model.attach(window: $0) })
@@ -32,6 +42,10 @@ struct RootView: View {
         }
         .onChange(of: columnVisibility) { _, v in
             model.setSidebarVisible(v != .detailOnly)
+        }
+        .sheet(isPresented: $model.isRecoveryPresented) {
+            RecoveryView()
+                .environment(model)
         }
         .background {
             keyboardShortcuts
