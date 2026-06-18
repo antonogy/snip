@@ -113,6 +113,8 @@ struct RootView: View {
             .keyboardShortcut(.delete, modifiers: .command)
             Button("") { model.toggleSidebar() }
                 .keyboardShortcut("b", modifiers: .command)
+            Button("") { model.findFocusedEditor() }
+                .keyboardShortcut("f", modifiers: .command)
             ForEach(1..<10, id: \.self) { index in
                 Button("") {
                     let i = index - 1

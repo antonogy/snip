@@ -476,6 +476,12 @@ final class AppModel {
         textView(for: target)?.showFindInterface()
     }
 
+    /// Reveals the find bar for the focused editor via the `⌘F` shortcut. Targets
+    /// the focused editor when a split exists, otherwise the main editor.
+    func findFocusedEditor() {
+        showFind(effectiveFocusTarget)
+    }
+
     /// Formats the focused editor via the menu command (`⌃⌥F`).
     func formatFocusedEditor() {
         format(effectiveFocusTarget)
