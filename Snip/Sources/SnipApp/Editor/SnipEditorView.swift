@@ -24,6 +24,12 @@ struct SnipEditorView: NSViewRepresentable {
     /// Called with the backing text view when it gains focus, so `AppModel` can
     /// target content commands (e.g. Format) at the editor the user is in.
     var onFocus: (HighlightingTextView) -> Void = { _ in }
+    /// Called once with the backing text view when it is created, so the owning
+    /// pane can register it for per-editor toolbar commands (Find, Format).
+    var onMake: (HighlightingTextView) -> Void = { _ in }
+    /// Called when an edit (paste, drag-in, typing) is rejected for exceeding the
+    /// content-size limit, so the pane can surface a non-modal hint (FR-21).
+    var onContentLimitExceeded: () -> Void = {}
 
     private static let defaultTypingAttributes: [NSAttributedString.Key: Any] = [
         .font: NSFont.monospacedSystemFont(ofSize: 13, weight: .regular),
@@ -59,6 +65,7 @@ struct SnipEditorView: NSViewRepresentable {
             context.coordinator.parent.onFocus(textView)
         }
         context.coordinator.textView = textView
+        onMake(textView)
 
         scrollView.documentView = textView
 
@@ -112,6 +119,11 @@ struct SnipEditorView: NSViewRepresentable {
         textView.usesFontPanel = false
         textView.usesRuler = false
         textView.drawsBackground = true
+
+        // Built-in find bar, hosted by this editor's scroll view, so in-editor
+        // search is scoped to a single editor (FR-19).
+        textView.usesFindBar = true
+        textView.isIncrementalSearchingEnabled = true
 
         textView.font = .monospacedSystemFont(ofSize: 13, weight: .regular)
         textView.textColor = .textColor
@@ -176,6 +188,24 @@ struct SnipEditorView: NSViewRepresentable {
             self.parent = parent
         }
 
+        // Rejects any edit (paste, drag-in, typing) that would push the document
+        // past the content-size limit, so oversized input degrades gracefully
+        // instead of hanging the editor (FR-21).
+        nonisolated func textView(
+            _ textView: NSTextView,
+            shouldChangeTextIn affectedCharRange: NSRange,
+            replacementString: String?
+        ) -> Bool {
+            guard let replacementString else { return true }
+            return MainActor.assumeIsolated {
+                let current = (textView.string as NSString).length
+                let resulting = current - affectedCharRange.length + (replacementString as NSString).length
+                guard resulting > SharedModels.Limits.maxEditorCharacters else { return true }
+                parent.onContentLimitExceeded()
+                return false
+            }
+        }
+
         // `notification` is not Sendable in Swift 6, so we ignore it and
         // read from the already-@MainActor-isolated `textView` reference instead.
         nonisolated func textDidChange(_ notification: Notification) {
@@ -211,6 +241,10 @@ struct SnipEditorView: NSViewRepresentable {
             highlightTask?.cancel()
             guard let text = textView?.string else { return }
             let expectedLength = (text as NSString).length
+            // Skip parsing on oversized content (e.g. a huge programmatic load):
+            // tree-sitter on a multi-MB string would block. The text stays shown
+            // and editable, just un-highlighted — graceful degradation (FR-21).
+            guard expectedLength <= SharedModels.Limits.maxEditorCharacters else { return }
             highlightTask = Task { [weak self, highlighter] in
                 if !immediate {
                     try? await Task.sleep(for: .milliseconds(40))

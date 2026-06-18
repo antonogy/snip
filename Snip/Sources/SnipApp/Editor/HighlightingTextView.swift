@@ -21,6 +21,15 @@ final class HighlightingTextView: NSTextView {
         didChangeText()
     }
 
+    /// Reveals this text view's own find bar (FR-19). The find bar belongs to the
+    /// enclosing scroll view, so the search is scoped to this editor alone — it
+    /// never reaches the other editor in a split or any other snippet.
+    func showFindInterface() {
+        let item = NSMenuItem()
+        item.tag = Int(NSTextFinder.Action.showFindInterface.rawValue)
+        performTextFinderAction(item)
+    }
+
     override func becomeFirstResponder() -> Bool {
         let became = super.becomeFirstResponder()
         if became { onBecomeFirstResponder?() }
@@ -31,8 +40,9 @@ final class HighlightingTextView: NSTextView {
         super.drawBackground(in: rect)
 
         guard selectedRange().length == 0,
-              let lm = layoutManager,
-              let tc = textContainer else { return }
+            let lm = layoutManager,
+            let tc = textContainer
+        else { return }
 
         lm.ensureLayout(for: tc)
 

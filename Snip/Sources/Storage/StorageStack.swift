@@ -83,7 +83,13 @@ public final class StorageStack: Sendable {
         try snippets.listSnippets()
     }
 
+    /// Number of active (non-deleted) snippets, subject to the snippet cap (FR-21).
+    public func activeSnippetCount() throws -> Int {
+        try snippets.activeCount()
+    }
+
     /// Creates a new snippet with an auto-generated title and an empty content file.
+    /// Throws `StorageError.snippetLimitReached` when the active cap is hit (FR-21).
     public func createSnippet() throws -> Snippet {
         let snippet = try snippets.insertNewSnippet()
         try content.write("", relativePath: snippet.mainEditor.contentFilePath)
@@ -232,12 +238,14 @@ public enum StorageError: Error, CustomStringConvertible {
     case missingTable(String)
     case contentReadFailed(String)
     case missingSnippet(String)
+    case snippetLimitReached(Int)
 
     public var description: String {
         switch self {
         case .missingTable(let name): return "Expected table '\(name)' is missing"
         case .contentReadFailed(let path): return "Failed to read content file at '\(path)'"
         case .missingSnippet(let id): return "Snippet '\(id)' not found"
+        case .snippetLimitReached(let max): return "Snippet limit reached (\(max))"
         }
     }
 }
