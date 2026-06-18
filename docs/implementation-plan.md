@@ -420,7 +420,40 @@ Recovery workflow functions correctly.
 
 ---
 
-# Milestone 11 — UX Polish
+# Milestone 11 — Toolbars & Limits
+
+Estimated Outcome:
+
+Per-editor and top-level toolbars, plus safety limits.
+
+## Features
+
+* per-editor toolbar (FR-19): in-editor search, Format Code button (gated per
+  FR-7), language switcher (FR-14)
+* top toolbar to the right of the "Snip" title (FR-20): New Snippet, Pin/Unpin
+* snippet limit — max 100 active snippets, excluding Recovery (FR-21)
+* paste-size guard — prevent crashes/freezes on oversized input (FR-21)
+
+## Deliverables
+
+* editor toolbar component, with independent state per editor / split
+* in-editor find (NSTextFinder / TextKit-backed), scoped to a single editor
+* top toolbar wiring to the snippet-create and pin commands
+* snippet-count enforcement — disable New Snippet at the cap with a non-modal
+  hint
+* content-size guard plus investigation of the maximum safe paste size
+
+## Exit Criteria
+
+Toolbars function correctly.
+
+The snippet limit is enforced without modal interruption.
+
+Large pastes never crash or freeze the app.
+
+---
+
+# Milestone 12 — UX Polish
 
 Estimated Outcome:
 
@@ -439,7 +472,7 @@ Application feels native and responsive.
 
 ---
 
-# Milestone 12 — Performance Pass
+# Milestone 13 — Performance Pass
 
 Estimated Outcome:
 
