@@ -369,7 +369,9 @@ Manual formatting.
 ## Features
 
 * format command
-* formatter execution
+* in-process formatter execution (Prettier + swift-format; no external CLIs)
+* availability gating (enabled only when a built-in formatter exists for the
+  language; silently disabled otherwise, Plain Text always disabled)
 * formatter errors
 
 ## Deliverables
@@ -378,29 +380,18 @@ Manual formatting.
 
 ## Exit Criteria
 
-Supported languages format correctly.
+Languages with a built-in formatter format correctly; languages without one
+have the command disabled.
 
 ---
 
-# Milestone 9 — Command Palette
+# Milestone 9 — Command Palette (Deferred)
 
-Estimated Outcome:
+Deferred to Future Work (see §12).
 
-Keyboard-first workflow.
-
-## Features
-
-* palette UI
-* fuzzy search
-* command registry
-
-## Deliverables
-
-* command infrastructure
-
-## Exit Criteria
-
-All MVP commands accessible.
+The current command set is small enough that a dedicated palette is
+overabundant; commands are reached via menus and keyboard shortcuts instead.
+Revisit after prototype validation.
 
 ---
 
@@ -654,7 +645,12 @@ Enforce Product Principles.
 * iCloud Sync
 * Smart Titles (performance permitting)
 * Contextual Subtle Actions
-* Command Palette Review
+* Command Palette (deferred from Milestone 9 — small command set makes it
+  overabundant for now; reachable via menus and shortcuts)
+* Formatting enhancements:
+  * formatters for SQL, Python, and Bash
+  * native implementation of the Prettier formatter
+  * formatting support for YAML, GraphQL, Markdown, and Flow
 
 ## Explicitly Rejected
 
@@ -684,7 +680,6 @@ The application is considered MVP complete when:
 * editing feels instant
 * autosave is reliable
 * recovery is reliable
-* command palette works
 * split editor works
 * syntax highlighting works
 * formatting works

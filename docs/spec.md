@@ -137,7 +137,6 @@ intelligent.
 * automatic language detection
 * formatting
 * split editor
-* command palette
 * autosave
 * recovery
 * keyboard shortcuts
@@ -269,40 +268,10 @@ Within group:
 
 ## FR-6 Command Palette
 
-Shortcut:
+Deferred to the Future Exploration Backlog (see §10).
 
-⌘⇧P
-
-Commands:
-
-### Snippets
-
-* New Snippet
-* Delete Snippet
-* Pin Snippet
-* Unpin Snippet
-* Clear Expired Snippets
-
-### Editor
-
-* Format Code
-* Detect Language
-* Change Language
-* Focus Main Editor
-* Focus Split Editor
-
-### Split
-
-* Split Right
-* Split Down
-* Close Split
-
-### Application
-
-* Open Settings
-* Toggle Sidebar
-
-Command list will be reviewed after prototype validation.
+The command set is small enough today that a dedicated palette is
+overabundant; commands are reached via menus and keyboard shortcuts instead.
 
 ---
 
@@ -310,17 +279,32 @@ Command list will be reviewed after prototype validation.
 
 Formatting is manual only.
 
+All formatters are built in and run in-process — no external CLI tools or
+user setup are required.
+
 Supported:
 
-* JavaScript → Prettier
-* TypeScript → Prettier
-* JSON → Prettier
-* HTML → Prettier
-* CSS → Prettier
-* SQL → sql-formatter
-* Swift → swift-format
-* Python → Black
-* Bash → shfmt
+* JavaScript → Prettier (bundled, in-process)
+* TypeScript → Prettier (bundled, in-process)
+* JSON → Prettier (bundled, in-process)
+* HTML → Prettier (bundled, in-process)
+* CSS → Prettier (bundled, in-process)
+* Swift → swift-format (bundled, in-process)
+
+Not formattable (no built-in formatter):
+
+* SQL
+* Python
+* Bash
+* Plain Text
+
+Availability:
+
+* if a built-in formatter exists for the editor's language, "Format Code" is
+  enabled
+* if no formatter exists, the feature is silently disabled — "Format Code" is
+  disabled, with no error or install prompt
+* Plain Text is always disabled
 
 Formatting never runs automatically.
 
@@ -331,7 +315,6 @@ Formatting never runs automatically.
 Supported shortcuts:
 
 * ⌘N New Snippet
-* ⌘⇧P Command Palette
 * ⌘B Toggle Sidebar
 * ⌘⌫ Delete Snippet
 * ⌘1-⌘9 Switch Snippet
@@ -753,9 +736,59 @@ Must remain:
 
 ---
 
-## Command Palette Review
+## Command Palette
 
-Review after prototype validation.
+Deferred from FR-6.
+
+Reason:
+
+* the current command set is small; a dedicated palette is overabundant for now
+* commands remain reachable via menus and keyboard shortcuts
+
+Shortcut (when implemented):
+
+⌘⇧P
+
+Proposed commands:
+
+### Snippets
+
+* New Snippet
+* Delete Snippet
+* Pin Snippet
+* Unpin Snippet
+* Clear Expired Snippets
+
+### Editor
+
+* Format Code
+* Detect Language
+* Change Language
+* Focus Main Editor
+* Focus Split Editor
+
+### Split
+
+* Split Right
+* Split Down
+* Close Split
+
+### Application
+
+* Open Settings
+* Toggle Sidebar
+
+Command list will be reviewed after prototype validation.
+
+---
+
+## Formatting Enhancements
+
+Extend formatting beyond the current built-in, in-process formatters (FR-7):
+
+* implement formatters for SQL, Python, and Bash
+* native implementation of the Prettier formatter
+* add formatting support for YAML, GraphQL, Markdown, and Flow
 
 ---
 
