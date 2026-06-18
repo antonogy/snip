@@ -14,15 +14,7 @@ struct RootView: View {
             editorArea(model: model)
                 .frame(minWidth: 400, minHeight: 300)
                 .toolbar {
-                    languageToolbar(model: model)
-                    ToolbarItem(placement: .automatic) {
-                        Button {
-                            model.showRecovery()
-                        } label: {
-                            Image(systemName: "clock.arrow.circlepath")
-                        }
-                        .help("Recovery")
-                    }
+                    topToolbar(model: model)
                 }
         }
         .frame(minWidth: 560, minHeight: 360)
@@ -30,8 +22,8 @@ struct RootView: View {
         .overlay(alignment: .bottom) {
             if let error = model.initializationError {
                 storageWarning(error)
-            } else if let formatError = model.formatError {
-                banner(formatError)
+            } else if let status = model.transientStatus {
+                banner(status)
             }
         }
         .onAppear {
@@ -56,19 +48,8 @@ struct RootView: View {
     /// the current snippet's split orientation with a draggable divider.
     @ViewBuilder
     private func editorArea(model: AppModel) -> some View {
-        @Bindable var model = model
-        let main = SnipEditorView(
-            text: $model.editorText,
-            wordWrap: model.settings.wordWrapEnabled,
-            language: model.mainLanguage,
-            onFocus: { model.focusEditor(.main, $0) }
-        )
-        let split = SnipEditorView(
-            text: $model.splitEditorText,
-            wordWrap: model.settings.wordWrapEnabled,
-            language: model.splitLanguage,
-            onFocus: { model.focusEditor(.split, $0) }
-        )
+        let main = EditorPane(target: .main)
+        let split = EditorPane(target: .split)
 
         switch model.splitOrientation {
         case .none:
@@ -86,29 +67,38 @@ struct RootView: View {
         }
     }
 
-    /// Language menu(s) for the detail toolbar: one for a single editor, or a
-    /// labeled pair when a split is open (each editor's language is independent).
+    /// The application's top toolbar, right of the "Snip" title (FR-20): New
+    /// Snippet and Pin/Unpin, plus the existing Recovery entry point. Snippet-
+    /// scoped buttons disable when there is no selection; New Snippet disables at
+    /// the snippet cap (FR-21).
     @ToolbarContentBuilder
-    private func languageToolbar(model: AppModel) -> some ToolbarContent {
+    private func topToolbar(model: AppModel) -> some ToolbarContent {
         ToolbarItemGroup(placement: .automatic) {
-            if model.currentSnippet != nil {
-                LanguagePicker(
-                    caption: model.hasSplit ? "Main" : nil,
-                    language: model.mainLanguage,
-                    isAuto: model.mainLanguageIsAuto,
-                    onSelect: { model.selectMainLanguage($0) },
-                    onAuto: { model.restoreMainAutoDetect() }
-                )
-                if model.hasSplit {
-                    LanguagePicker(
-                        caption: "Split",
-                        language: model.splitLanguage,
-                        isAuto: model.splitLanguageIsAuto,
-                        onSelect: { model.selectSplitLanguage($0) },
-                        onAuto: { model.restoreSplitAutoDetect() }
-                    )
-                }
+            Button {
+                model.createSnippet()
+            } label: {
+                Image(systemName: "square.and.pencil")
             }
+            .help(
+                model.canCreateSnippet ? "New Snippet" : "Snippet limit reached (\(Limits.maxActiveSnippets))"
+            )
+            .disabled(!model.canCreateSnippet)
+
+            let isPinned = model.currentSnippet?.isPinned ?? false
+            Button {
+                if let id = model.currentSnippet?.id { model.togglePin(id) }
+            } label: {
+                Image(systemName: isPinned ? "pin.slash" : "pin")
+            }
+            .help(isPinned ? "Unpin" : "Pin")
+            .disabled(model.currentSnippet == nil)
+
+            Button {
+                model.showRecovery()
+            } label: {
+                Image(systemName: "clock.arrow.circlepath")
+            }
+            .help("Recovery")
         }
     }
 
@@ -123,6 +113,8 @@ struct RootView: View {
             .keyboardShortcut(.delete, modifiers: .command)
             Button("") { model.toggleSidebar() }
                 .keyboardShortcut("b", modifiers: .command)
+            Button("") { model.findFocusedEditor() }
+                .keyboardShortcut("f", modifiers: .command)
             ForEach(1..<10, id: \.self) { index in
                 Button("") {
                     let i = index - 1

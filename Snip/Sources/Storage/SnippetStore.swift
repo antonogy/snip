@@ -224,8 +224,19 @@ struct SnippetStore: Sendable {
         }
     }
 
+    /// Number of active (non-deleted) snippets — the count subject to the
+    /// snippet cap (FR-21). Excludes anything held in Recovery.
+    func activeCount() throws -> Int {
+        try database.read { db in
+            try activeCount(db)
+        }
+    }
+
     func insertNewSnippet(language: CodeLanguage = .plainText, now: Date = Date()) throws -> Snippet {
         try database.write { db in
+            guard try activeCount(db) < Limits.maxActiveSnippets else {
+                throw StorageError.snippetLimitReached(Limits.maxActiveSnippets)
+            }
             let editorID = UUID()
             let title = try nextTitle(for: language, in: db)
             let doc = EditorDocument(
@@ -550,6 +561,10 @@ struct SnippetStore: Sendable {
             .flatMap { try EditorDocumentRecord.fetchOne(db, key: $0) }?
             .toModel()
         return sr.toSnippet(mainEditor: mainRec.toModel(), splitEditor: split)
+    }
+
+    private func activeCount(_ db: Database) throws -> Int {
+        try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM snippets WHERE deleted_at IS NULL") ?? 0
     }
 
     private func fetchAllSnippets(_ db: Database) throws -> [Snippet] {

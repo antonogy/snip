@@ -611,3 +611,56 @@ private func recoveryCount(_ stack: StorageStack, snippetId: UUID) throws -> Int
     #expect(items.first?.snippetId == newer.id)
     #expect(items.last?.snippetId == older.id)
 }
+
+// MARK: - Snippet cap (FR-21)
+
+@Test func createSnippetEnforcesActiveCap() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    for _ in 0..<Limits.maxActiveSnippets {
+        _ = try stack.createSnippet()
+    }
+    #expect(try stack.activeSnippetCount() == Limits.maxActiveSnippets)
+
+    // The next creation is rejected, not silently allowed.
+    #expect(throws: StorageError.self) {
+        _ = try stack.createSnippet()
+    }
+    #expect(try stack.activeSnippetCount() == Limits.maxActiveSnippets)
+}
+
+@Test func deletingFreesCapacityUnderCap() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    var ids: [UUID] = []
+    for _ in 0..<Limits.maxActiveSnippets {
+        ids.append(try stack.createSnippet().id)
+    }
+    #expect(throws: StorageError.self) { _ = try stack.createSnippet() }
+
+    // Deleting moves a snippet to Recovery, so it no longer counts as active.
+    try stack.deleteSnippet(id: ids[0])
+    #expect(try stack.activeSnippetCount() == Limits.maxActiveSnippets - 1)
+
+    // Capacity is freed: a new snippet can be created again.
+    _ = try stack.createSnippet()
+    #expect(try stack.activeSnippetCount() == Limits.maxActiveSnippets)
+}
+
+@Test func recoveryItemsExcludedFromActiveCount() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let a = try stack.createSnippet()
+    _ = try stack.createSnippet()
+    #expect(try stack.activeSnippetCount() == 2)
+
+    try stack.deleteSnippet(id: a.id)  // into Recovery
+    #expect(try stack.activeSnippetCount() == 1)
+    #expect(try stack.listRecoveryItems().count == 1)
+}

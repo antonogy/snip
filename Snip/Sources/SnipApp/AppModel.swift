@@ -47,9 +47,9 @@ final class AppModel {
     /// `.main` whenever there is no split (see `effectiveFocusTarget`).
     private(set) var focusedTarget: EditorTarget = .main
 
-    /// Transient, user-facing formatting error message. Auto-clears after a few
-    /// seconds; drives a non-modal banner in `RootView`.
-    private(set) var formatError: String?
+    /// Transient, user-facing status message (formatting errors, limit hints).
+    /// Auto-clears after a few seconds; drives a non-modal banner in `RootView`.
+    private(set) var transientStatus: String?
 
     /// Whether the current snippet has a split editor.
     var hasSplit: Bool { currentSnippet?.splitEditor != nil }
@@ -66,9 +66,11 @@ final class AppModel {
     @ObservationIgnored private var splitSaveTask: Task<Void, Never>?
     @ObservationIgnored private var isLoadingContent = false
     @ObservationIgnored private weak var focusedTextView: HighlightingTextView?
+    @ObservationIgnored private weak var mainTextView: HighlightingTextView?
+    @ObservationIgnored private weak var splitTextView: HighlightingTextView?
     @ObservationIgnored private let formatter = CodeFormatter()
     @ObservationIgnored private var isFormatting = false
-    @ObservationIgnored private var formatErrorTask: Task<Void, Never>?
+    @ObservationIgnored private var statusTask: Task<Void, Never>?
     @ObservationIgnored private let log = AppLog.make("app.model")
 
     init(directories: AppDirectories? = nil) {
@@ -177,8 +179,16 @@ final class AppModel {
 
     // MARK: - Snippet operations
 
+    /// Whether a new snippet can be created right now. False once the active
+    /// snippet cap is reached; drives the disabled New Snippet button (FR-21).
+    var canCreateSnippet: Bool { snippets.count < Limits.maxActiveSnippets }
+
     func createSnippet() {
         guard let stack else { return }
+        guard canCreateSnippet else {
+            flashStatus("Snippet limit reached (\(Limits.maxActiveSnippets)). Delete a snippet to make room.")
+            return
+        }
         flushEditorContent()
         flushSplitContent()
         do {
@@ -191,6 +201,8 @@ final class AppModel {
             splitEditorText = ""
             isLoadingContent = false
             scheduleAppStateSave()
+        } catch StorageError.snippetLimitReached(let max) {
+            flashStatus("Snippet limit reached (\(max)). Delete a snippet to make room.")
         } catch {
             log.error("Failed to create snippet: \(error.localizedDescription, privacy: .public)")
         }
@@ -420,39 +432,73 @@ final class AppModel {
 
     // MARK: - Formatting
 
-    /// Records which editor gained focus and a reference to its text view, so
-    /// `formatFocusedEditor()` knows where to read from and write back to.
+    /// Records which editor gained focus and a reference to its text view, so the
+    /// Format menu command knows which editor to act on.
     func focusEditor(_ target: EditorTarget, _ textView: HighlightingTextView) {
         focusedTarget = target
         focusedTextView = textView
+        register(target, textView)
     }
 
-    /// The editor the Format command acts on. Falls back to `.main` when there
-    /// is no split, regardless of any stale focus.
+    /// Records an editor's backing text view by target, so per-editor toolbar
+    /// commands (Format, Find) can act on a specific editor regardless of focus.
+    func register(_ target: EditorTarget, _ textView: HighlightingTextView) {
+        switch target {
+        case .main: mainTextView = textView
+        case .split: splitTextView = textView
+        }
+    }
+
+    /// The editor the Format menu command acts on. Falls back to `.main` when
+    /// there is no split, regardless of any stale focus.
     private var effectiveFocusTarget: EditorTarget { hasSplit ? focusedTarget : .main }
 
-    /// Language of the editor the Format command would act on.
-    private var focusedLanguage: CodeLanguage {
-        effectiveFocusTarget == .main ? mainLanguage : splitLanguage
+    private func language(for target: EditorTarget) -> CodeLanguage {
+        target == .main ? mainLanguage : splitLanguage
     }
 
-    /// Whether "Format Code" is available right now (drives the menu's enabled
-    /// state). A language is formattable only when a built-in formatter exists
-    /// for it; otherwise the feature is silently disabled.
-    var canFormat: Bool { currentSnippet != nil && formatter.supports(focusedLanguage) }
+    private func textView(for target: EditorTarget) -> HighlightingTextView? {
+        target == .main ? mainTextView : splitTextView
+    }
 
-    /// Formats the focused editor (FR-7). Runs the formatter off the main actor,
+    /// Whether "Format Code" is available for `target`. A language is formattable
+    /// only when a built-in formatter exists for it; otherwise silently disabled.
+    func canFormat(_ target: EditorTarget) -> Bool {
+        currentSnippet != nil && formatter.supports(language(for: target))
+    }
+
+    /// Whether the Format menu command is available (acts on the focused editor).
+    var canFormat: Bool { canFormat(effectiveFocusTarget) }
+
+    /// Reveals the in-editor find bar for `target` (FR-19). Scoped to that
+    /// editor's text view; never searches the other editor or across snippets.
+    func showFind(_ target: EditorTarget) {
+        textView(for: target)?.showFindInterface()
+    }
+
+    /// Reveals the find bar for the focused editor via the `⌘F` shortcut. Targets
+    /// the focused editor when a split exists, otherwise the main editor.
+    func findFocusedEditor() {
+        showFind(effectiveFocusTarget)
+    }
+
+    /// Formats the focused editor via the menu command (`⌃⌥F`).
+    func formatFocusedEditor() {
+        format(effectiveFocusTarget)
+    }
+
+    /// Formats a specific editor (FR-7). Runs the formatter off the main actor,
     /// then replaces the content through the undo-registering path. Surfaces a
     /// transient banner on failure. Manual only — never triggered automatically.
-    func formatFocusedEditor() {
+    func format(_ target: EditorTarget) {
         guard !isFormatting, currentSnippet != nil else { return }
-        let target = effectiveFocusTarget
-        let language = focusedLanguage
+        let language = language(for: target)
         guard formatter.supports(language) else {
-            setFormatError(FormatterError.unsupportedLanguage(language).userFacingMessage)
+            flashStatus(FormatterError.unsupportedLanguage(language).userFacingMessage)
             return
         }
-        let source = focusedTextView?.string ?? (target == .main ? editorText : splitEditorText)
+        let textView = textView(for: target)
+        let source = textView?.string ?? (target == .main ? editorText : splitEditorText)
         guard !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
 
         isFormatting = true
@@ -461,7 +507,7 @@ final class AppModel {
             do {
                 let result = try await formatter.format(source, language: language)
                 guard let self else { return }
-                if let textView = self.focusedTextView {
+                if let textView {
                     textView.replaceAllText(result)
                 } else if target == .main {
                     self.editorText = result
@@ -471,21 +517,21 @@ final class AppModel {
             } catch {
                 let message =
                     (error as? FormatterError)?.userFacingMessage ?? "Formatting failed."
-                self?.setFormatError(message)
+                self?.flashStatus(message)
             }
         }
     }
 
-    /// Shows a transient, non-modal error message that clears itself after a few
-    /// seconds (matching the product's "non-blocking" principle).
-    private func setFormatError(_ message: String) {
-        formatErrorTask?.cancel()
-        formatError = message
-        log.error("Format failed: \(message, privacy: .public)")
-        formatErrorTask = Task { [weak self] in
+    /// Shows a transient, non-modal status message that clears itself after a few
+    /// seconds (matching the product's "non-blocking" principle). Used for
+    /// formatting errors and limit hints (FR-21).
+    func flashStatus(_ message: String) {
+        statusTask?.cancel()
+        transientStatus = message
+        statusTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(4))
             guard !Task.isCancelled else { return }
-            self?.formatError = nil
+            self?.transientStatus = nil
         }
     }
 

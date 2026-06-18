@@ -150,7 +150,7 @@ intelligent.
 * git
 * plugins
 * AI features
-* search
+* search (global, cross-snippet — in-editor find within a single editor is supported, see FR-19)
 * export
 * import
 * backups
@@ -173,6 +173,7 @@ intelligent.
 * snippets may be manually deleted
 * expired snippets may be manually cleared
 * on launch, snippets whose editors are all empty are removed
+* the number of active snippets is capped (see FR-21)
 
 A snippet counts as empty only when its main editor and its split editor (if
 present) are both empty.
@@ -354,6 +355,7 @@ Supported:
 * syntax highlighting
 * word wrap
 * current line highlight
+* in-editor find (scoped to a single editor — see FR-19)
 
 Not supported:
 
@@ -476,6 +478,74 @@ First launch:
 Open App → Empty Snippet → Type
 
 No onboarding flow.
+
+---
+
+## FR-19 Editor Toolbar
+
+Each editor — main and split — has its own toolbar.
+
+The toolbar provides:
+
+* **In-editor search** — find text within that editor's content only
+* **Format Code** — formats the editor's content; availability is gated per
+  FR-7 (enabled only when a built-in formatter exists for the language,
+  silently disabled otherwise, Plain Text always disabled)
+* **Language switcher** — shows the current language and allows manual
+  selection; manual selection disables auto detection per FR-14
+
+Scope:
+
+* each editor in a split keeps independent toolbar state — its own language and
+  its own search session
+* in-editor search is scoped to a single editor; it is not global, cross-snippet
+  search (see §3 Excluded)
+
+In-editor search:
+
+* matches within the active editor only
+* highlights matches and supports next/previous navigation
+* clears when dismissed
+* never searches across snippets or the other editor in a split
+
+---
+
+## FR-20 Top Toolbar
+
+The application's top toolbar sits to the right of the "Snip" title.
+
+Buttons:
+
+* **New Snippet** — creates a snippet per FR-15; respects the snippet limit
+  (FR-21)
+* **Pin / Unpin** — toggles the pin state of the selected snippet (FR-1, FR-5)
+
+State:
+
+* the Pin / Unpin button reflects the selected snippet — it shows Pin when the
+  snippet is unpinned and Unpin when it is pinned
+* when no snippet is selected, snippet-scoped buttons are disabled
+
+---
+
+## FR-21 Limits
+
+### Snippet Count
+
+* maximum 100 active snippets
+* "active" excludes deleted and expired snippets held in Recovery (FR-11)
+* when the cap is reached, New Snippet (FR-15, FR-20, ⌘N) is disabled with a
+  subtle, non-modal hint — no dialog, no interruption (§2.6)
+* deleting, expiring, or clearing snippets frees capacity
+
+### Paste Size
+
+* large pastes must never crash or freeze the application (see §5
+  Responsiveness)
+* the maximum safe paste / content size is an open investigation (see §10);
+  until a concrete limit is set, oversized input must be guarded so the editor
+  degrades gracefully rather than hanging
+* the guard applies to paste, drag-in, and programmatic content loads
 
 ---
 
@@ -799,6 +869,21 @@ Extend formatting beyond the current built-in, in-process formatters (FR-7):
 * implement formatters for SQL, Python, and Bash
 * native implementation of the Prettier formatter
 * add formatting support for YAML, GraphQL, Markdown, and Flow
+
+---
+
+## Maximum Content Size
+
+Determine the maximum safe paste / editor content size before performance
+degrades (referenced by FR-21).
+
+Goals:
+
+* find the threshold at which highlighting, layout, or autosave begin to stall
+* define a concrete limit and a graceful-degradation strategy (e.g. disable
+  highlighting, truncate, or warn non-modally) for content beyond it
+
+Must never crash or freeze the application.
 
 ---
 
