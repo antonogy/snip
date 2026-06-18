@@ -269,6 +269,35 @@ struct SnippetStore: Sendable {
         }
     }
 
+    /// Permanently removes a snippet and its editor documents. Unlike
+    /// `softDeleteSnippet`, this bypasses Recovery. Returns the content-file paths
+    /// of the removed editors so the caller can delete them from disk.
+    func purgeSnippet(id: UUID) throws -> [String] {
+        try database.write { db in
+            guard let sr = try SnippetRecord.fetchOne(db, key: id.uuidString) else { return [] }
+            var paths: [String] = []
+            if let main = try EditorDocumentRecord.fetchOne(db, key: sr.mainEditorId) {
+                paths.append(main.contentFilePath)
+            }
+            if let splitId = sr.splitEditorId,
+                let split = try EditorDocumentRecord.fetchOne(db, key: splitId)
+            {
+                paths.append(split.contentFilePath)
+            }
+            // Delete the snippet row first: main_editor_id is an ON DELETE RESTRICT
+            // foreign key, so the editor rows can only go once the snippet is gone.
+            try db.execute(sql: "DELETE FROM snippets WHERE id = ?", arguments: [id.uuidString])
+            try db.execute(
+                sql: "DELETE FROM editor_documents WHERE id = ?", arguments: [sr.mainEditorId])
+            if let splitId = sr.splitEditorId {
+                try db.execute(sql: "DELETE FROM editor_documents WHERE id = ?", arguments: [splitId])
+            }
+            try db.execute(
+                sql: "DELETE FROM recovery_items WHERE snippet_id = ?", arguments: [id.uuidString])
+            return paths
+        }
+    }
+
     func setPinned(id: UUID, isPinned: Bool, at date: Date = Date()) throws {
         try database.write { db in
             try db.execute(

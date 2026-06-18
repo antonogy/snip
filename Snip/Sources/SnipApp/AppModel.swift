@@ -78,6 +78,7 @@ final class AppModel {
             // Load snippet list; bootstrap on first launch. Nested catch so that
             // a failure here doesn't prevent the app from launching with a healthy stack.
             do {
+                try stack.purgeEmptySnippets()  // FR-1: drop snippets left empty last session
                 var list = try stack.listSnippets()
                 if list.isEmpty {
                     _ = try stack.loadOrBootstrap()

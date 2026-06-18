@@ -35,6 +35,15 @@ public struct ContentStore: Sendable {
         try Data(content.utf8).write(to: url, options: .atomic)
     }
 
+    /// True when the backing file is missing or zero-length — i.e. no content has
+    /// been written. Cheaper than `read`, used by the launch-time empty-snippet purge.
+    public func isEmpty(relativePath: String) throws -> Bool {
+        let url = url(forRelativePath: relativePath)
+        guard FileManager.default.fileExists(atPath: url.path) else { return true }
+        let values = try url.resourceValues(forKeys: [.fileSizeKey])
+        return (values.fileSize ?? 0) == 0
+    }
+
     /// Deletes the backing file at `relativePath`, ignoring a missing file.
     public func remove(relativePath: String) throws {
         let url = url(forRelativePath: relativePath)

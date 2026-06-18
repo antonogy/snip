@@ -229,6 +229,103 @@ private func makeTempDirectories() throws -> AppDirectories {
     #expect(count == 1)
 }
 
+// MARK: - FR-1: Empty-snippet purge on launch
+
+@Test func purgeRemovesEmptySnippetAndItsFile() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let snippet = try stack.createSnippet()
+    let filePath = ContentStore(directories: directories)
+        .url(forRelativePath: snippet.mainEditor.contentFilePath).path
+
+    let purged = try stack.purgeEmptySnippets()
+    #expect(purged == 1)
+    let list = try stack.listSnippets()
+    #expect(!list.contains(where: { $0.id == snippet.id }))
+    #expect(!FileManager.default.fileExists(atPath: filePath))
+}
+
+@Test func purgeKeepsSnippetWithContent() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let snippet = try stack.createSnippet()
+    try stack.saveEditorContent("let x = 1\n", for: snippet.mainEditor)
+
+    let purged = try stack.purgeEmptySnippets()
+    #expect(purged == 0)
+    let list = try stack.listSnippets()
+    #expect(list.contains(where: { $0.id == snippet.id }))
+}
+
+@Test func purgeKeepsSnippetWhenOnlySplitHasContent() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let snippet = try stack.createSnippet()
+    let withSplit = try stack.setSplit(snippetId: snippet.id, orientation: .horizontal)
+    let split = try #require(withSplit.splitEditor)
+    // Main editor stays empty; only the split has content.
+    try stack.saveEditorContent("SELECT 1;\n", for: split)
+
+    let purged = try stack.purgeEmptySnippets()
+    #expect(purged == 0)
+    let list = try stack.listSnippets()
+    #expect(list.contains(where: { $0.id == snippet.id }))
+}
+
+@Test func purgeBypassesRecovery() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let snippet = try stack.createSnippet()
+
+    try stack.purgeEmptySnippets()
+
+    // Unlike soft-delete, the permanent purge leaves no recovery row and no
+    // editor_documents rows behind.
+    let recoveryCount = try stack.database.read { db in
+        try Int.fetchOne(
+            db,
+            sql: "SELECT COUNT(*) FROM recovery_items WHERE snippet_id = ?",
+            arguments: [snippet.id.uuidString]
+        ) ?? 0
+    }
+    #expect(recoveryCount == 0)
+
+    let editorExists = try stack.database.read { db in
+        try Bool.fetchOne(
+            db,
+            sql: "SELECT EXISTS(SELECT 1 FROM editor_documents WHERE id = ?)",
+            arguments: [snippet.mainEditor.id.uuidString]
+        ) ?? false
+    }
+    #expect(editorExists == false)
+}
+
+@Test func purgePoolsMultipleEmptiesAndReportsCount() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let kept = try stack.createSnippet()
+    try stack.saveEditorContent("keep me\n", for: kept.mainEditor)
+    _ = try stack.createSnippet()  // empty
+    _ = try stack.createSnippet()  // empty
+
+    let purged = try stack.purgeEmptySnippets()
+    #expect(purged == 2)
+
+    let remaining = try stack.listSnippets()
+    #expect(remaining.count == 1)
+    #expect(remaining.first?.id == kept.id)
+}
+
 // MARK: - Milestone 5: Split editor tests
 
 @Test func setSplitCreatesEmptyEditorInheritingLanguage() throws {

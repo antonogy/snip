@@ -95,6 +95,26 @@ public final class StorageStack: Sendable {
         try snippets.softDeleteSnippet(id: id, gracePeriodDays: gracePeriodDays, at: Date())
     }
 
+    /// Permanently removes every active snippet whose editors are all empty
+    /// (main and split, if present). Bypasses Recovery — there is nothing to
+    /// recover. Intended to run once at launch (FR-1). Returns the count purged.
+    @discardableResult
+    public func purgeEmptySnippets() throws -> Int {
+        var purged = 0
+        for snippet in try snippets.listSnippets() {
+            let mainEmpty = try content.isEmpty(relativePath: snippet.mainEditor.contentFilePath)
+            let splitEmpty =
+                try snippet.splitEditor
+                .map { try content.isEmpty(relativePath: $0.contentFilePath) } ?? true
+            guard mainEmpty, splitEmpty else { continue }
+            for path in try snippets.purgeSnippet(id: snippet.id) {
+                try content.remove(relativePath: path)
+            }
+            purged += 1
+        }
+        return purged
+    }
+
     /// Toggles the pinned state of a snippet, which affects list ordering.
     public func setSnippetPinned(id: UUID, isPinned: Bool) throws {
         try snippets.setPinned(id: id, isPinned: isPinned)
