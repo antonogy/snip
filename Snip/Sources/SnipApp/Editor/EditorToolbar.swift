@@ -15,14 +15,14 @@ struct EditorToolbar: View {
             } label: {
                 Image(systemName: "magnifyingglass")
             }
-            .help("Find in this editor")
+            .help("Find in this editor (⌘F)")
 
             Button {
                 model.format(target)
             } label: {
                 Image(systemName: "wand.and.stars")
             }
-            .help("Format Code")
+            .help("Format Code (⌃⌥F)")
             .disabled(!model.canFormat(target))
 
             Spacer(minLength: 0)

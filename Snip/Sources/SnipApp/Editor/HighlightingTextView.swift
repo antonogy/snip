@@ -10,6 +10,11 @@ final class HighlightingTextView: NSTextView {
     /// editor (main vs split) is focused for content-targeted commands like Format.
     var onBecomeFirstResponder: (() -> Void)?
 
+    /// Whether this view claims first responder as soon as it's installed in a
+    /// window. Only the main editor does; the split editor must not steal focus
+    /// when it appears (opening a split snippet keeps the cursor in the main editor).
+    var claimsFocusOnInstall = true
+
     /// Replaces the entire document through the standard editing path so the
     /// change is registered with the undo manager (⌘Z reverts it in one step)
     /// and `textDidChange` fires — driving the binding update, autosave, and
@@ -69,10 +74,12 @@ final class HighlightingTextView: NSTextView {
     }
 
     // Claim first responder as soon as the view is installed in a window so
-    // the user can start typing without clicking first.
+    // the user can start typing without clicking first. The split editor opts
+    // out (`claimsFocusOnInstall == false`) so it never steals focus from the
+    // main editor when a split snippet is opened.
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        if window != nil {
+        if window != nil, claimsFocusOnInstall {
             window?.makeFirstResponder(self)
         }
     }

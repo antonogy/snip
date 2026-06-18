@@ -17,7 +17,8 @@ struct EditorPane: View {
             onMake: { model.register(target, $0) },
             onContentLimitExceeded: {
                 model.flashStatus("Content limit reached (\(Limits.maxEditorCharacters) characters).")
-            }
+            },
+            autoFocusOnInstall: target == .main
         )
         .safeAreaInset(edge: .top, spacing: 0) {
             VStack(spacing: 0) {

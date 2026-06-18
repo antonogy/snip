@@ -21,6 +21,9 @@ struct SidebarView: View {
                     }
             }
             .listStyle(.sidebar)
+            // Animate row insert / delete / pin-reorder. Keyed on the ordered
+            // identities so reorders (which don't change the count) animate too.
+            .animation(.default, value: model.snippets.map(\.id))
             .onAppear { selectedId = model.currentSnippet?.id }
             .onChange(of: selectedId) { _, id in
                 if let id, id != model.currentSnippet?.id {
