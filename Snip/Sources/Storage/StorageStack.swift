@@ -106,19 +106,20 @@ public final class StorageStack: Sendable {
     /// recover. Intended to run once at launch (FR-1). Returns the count purged.
     @discardableResult
     public func purgeEmptySnippets() throws -> Int {
-        var purged = 0
+        var toPurge: [UUID] = []
         for snippet in try snippets.listSnippets() {
             let mainEmpty = try content.isEmpty(relativePath: snippet.mainEditor.contentFilePath)
             let splitEmpty =
                 try snippet.splitEditor
                 .map { try content.isEmpty(relativePath: $0.contentFilePath) } ?? true
             guard mainEmpty, splitEmpty else { continue }
-            for path in try snippets.purgeSnippet(id: snippet.id) {
-                try content.remove(relativePath: path)
-            }
-            purged += 1
+            toPurge.append(snippet.id)
         }
-        return purged
+        let paths = try snippets.purgeSnippets(ids: toPurge)
+        for path in paths {
+            try content.remove(relativePath: path)
+        }
+        return toPurge.count
     }
 
     // MARK: - Recovery & expiration
@@ -150,14 +151,12 @@ public final class StorageStack: Sendable {
     /// purged. Intended to run once at launch as a cleanup job.
     @discardableResult
     public func purgeExpiredRecoveryItems(now: Date = Date()) throws -> Int {
-        var purged = 0
-        for id in try snippets.expiredRecoverySnippetIds(now: now) {
-            for path in try snippets.purgeSnippet(id: id) {
-                try content.remove(relativePath: path)
-            }
-            purged += 1
+        let ids = try snippets.expiredRecoverySnippetIds(now: now)
+        let paths = try snippets.purgeSnippets(ids: ids)
+        for path in paths {
+            try content.remove(relativePath: path)
         }
-        return purged
+        return ids.count
     }
 
     /// Toggles the pinned state of a snippet, which affects list ordering.
