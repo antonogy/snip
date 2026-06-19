@@ -245,7 +245,8 @@ Rules:
 * split content is empty on creation
 * split content is independent
 * split language is independent
-* split initially inherits language from main editor
+* split starts as Plain Text with auto-detection enabled
+* split language is detected independently from the split's own content
 
 Auto title is always generated from main editor.
 
@@ -488,9 +489,8 @@ Each editor — main and split — has its own toolbar.
 The toolbar provides:
 
 * **In-editor search** — find text within that editor's content only
-* **Format Code** — formats the editor's content; availability is gated per
-  FR-7 (enabled only when a built-in formatter exists for the language,
-  silently disabled otherwise, Plain Text always disabled)
+* **Format Code** — accessed via the top toolbar (FR-20); formats all open
+  editors at once; availability is gated per FR-7
 * **Language switcher** — shows the current language and allows manual
   selection; manual selection disables auto detection per FR-14
 
@@ -512,19 +512,33 @@ In-editor search:
 
 ## FR-20 Top Toolbar
 
-The application's top toolbar sits to the right of the "Snip" title.
+The application's top toolbar (principal/centre slot and right action slot).
 
-Buttons:
+**Centre (principal slot):**
+
+* **Pin / Unpin** — toggles the pin state of the selected snippet (FR-1, FR-5)
+* **Format Code** — formats all open editors; gated per FR-7 (enabled only when
+  at least one editor has a built-in formatter; silently disabled otherwise)
+* **Delete** — soft-deletes the selected snippet into Recovery (FR-11); same
+  action as ⌘⌫
+
+**Right (primary action slot):**
+
+* When no split is active: **Split Right** and **Split Down** buttons
+* When a split is active: one orientation-switch button (Split Down when
+  vertical, Split Right when horizontal) and a **Close Split** button
+
+**Sidebar bottom-left:**
 
 * **New Snippet** — creates a snippet per FR-15; respects the snippet limit
   (FR-21)
-* **Pin / Unpin** — toggles the pin state of the selected snippet (FR-1, FR-5)
 
 State:
 
-* the Pin / Unpin button reflects the selected snippet — it shows Pin when the
-  snippet is unpinned and Unpin when it is pinned
-* when no snippet is selected, snippet-scoped buttons are disabled
+* snippet-scoped buttons (Pin/Unpin, Format Code, Delete, Split) are disabled
+  when no snippet is selected
+* Format Code is also disabled when no open editor's language has a built-in
+  formatter
 
 ---
 

@@ -428,9 +428,13 @@ Per-editor and top-level toolbars, plus safety limits.
 
 ## Features
 
-* per-editor toolbar (FR-19): in-editor search, Format Code button (gated per
-  FR-7), language switcher (FR-14)
-* top toolbar to the right of the "Snip" title (FR-20): New Snippet, Pin/Unpin
+* per-editor toolbar (FR-19): in-editor search, language switcher (FR-14);
+  Format Code is in the top toolbar, not per-editor
+* top toolbar (FR-20):
+  * centre slot — Pin/Unpin, Format Code (formats all editors, gated per FR-7),
+    Delete
+  * right slot — Split Right / Split Down (or Close Split when split active)
+  * sidebar bottom-left — New Snippet button
 * snippet limit — max 100 active snippets, excluding Recovery (FR-21)
 * paste-size guard — prevent crashes/freezes on oversized input (FR-21)
 
@@ -438,9 +442,8 @@ Per-editor and top-level toolbars, plus safety limits.
 
 * editor toolbar component, with independent state per editor / split
 * in-editor find (NSTextFinder / TextKit-backed), scoped to a single editor
-* top toolbar wiring to the snippet-create and pin commands
-* snippet-count enforcement — disable New Snippet at the cap with a non-modal
-  hint
+* top toolbar wiring to pin, format-all, delete, and split commands
+* sidebar New Snippet button with cap enforcement and non-modal hint at limit
 * content-size guard plus investigation of the maximum safe paste size
 
 ## Exit Criteria
