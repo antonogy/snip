@@ -7,7 +7,7 @@ struct SnipApp: App {
     @State private var model = AppModel()
 
     var body: some Scene {
-        Window("Snip", id: "main") {
+        Window("", id: "main") {
             RootView()
                 .environment(model)
                 .preferredColorScheme(model.colorScheme)

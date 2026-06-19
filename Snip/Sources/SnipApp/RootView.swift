@@ -57,8 +57,8 @@ struct RootView: View {
             main
         case .horizontal:
             HSplitView {
-                main.frame(minWidth: 200)
-                split.frame(minWidth: 200)
+                main.frame(minWidth: 400)
+                split.frame(minWidth: 400)
             }
         case .vertical:
             VSplitView {
@@ -74,16 +74,16 @@ struct RootView: View {
     @ToolbarContentBuilder
     private func topToolbar(model: AppModel) -> some ToolbarContent {
         ToolbarItem(placement: .principal) {
-            HStack(spacing: 4) {
+            HStack(spacing: 6) {
                 let isPinned = model.currentSnippet?.isPinned ?? false
 
-                if let snippet = model.currentSnippet {
-                    Text(snippet.title)
-                        .font(.headline)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .frame(maxWidth: 200)
-                }
+//                if let snippet = model.currentSnippet {
+//                    Text(snippet.title)
+//                        .font(.headline)
+//                        .lineLimit(1)
+//                        .truncationMode(.tail)
+//                        .frame(maxWidth: 200)
+//                }
 
                 Button {
                     if let id = model.currentSnippet?.id { model.togglePin(id) }
