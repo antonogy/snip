@@ -17,14 +17,6 @@ struct EditorToolbar: View {
             }
             .help("Find in this editor (⌘F)")
 
-            Button {
-                model.format(target)
-            } label: {
-                Image(systemName: "wand.and.stars")
-            }
-            .help("Format Code (⌃⌥F)")
-            .disabled(!model.canFormat(target))
-
             Spacer(minLength: 0)
 
             languagePicker

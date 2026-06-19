@@ -69,23 +69,10 @@ struct RootView: View {
     }
 
     /// The application's top toolbar (FR-20):
-    /// - New Snippet on the left (navigation slot, next to window title)
-    /// - Snippet title + Pin/Unpin + Delete centred in the title bar
+    /// - Snippet title + Pin/Unpin + Format + Delete centred in the title bar
+    /// - Split Right / Split Down (or Close Split) on the right
     @ToolbarContentBuilder
     private func topToolbar(model: AppModel) -> some ToolbarContent {
-        ToolbarItem(placement: .navigation) {
-            Button {
-                model.createSnippet()
-            } label: {
-                Image(systemName: "square.and.pencil")
-            }
-            .help(
-                model.canCreateSnippet
-                    ? "New Snippet (⌘N)" : "Snippet limit reached (\(Limits.maxActiveSnippets))"
-            )
-            .disabled(!model.canCreateSnippet)
-        }
-
         ToolbarItem(placement: .principal) {
             HStack(spacing: 4) {
                 let isPinned = model.currentSnippet?.isPinned ?? false
@@ -106,12 +93,47 @@ struct RootView: View {
                 .help(isPinned ? "Unpin (⌘P)" : "Pin (⌘P)")
                 .disabled(model.currentSnippet == nil)
 
+                Button {
+                    model.formatAll()
+                } label: {
+                    Image(systemName: "wand.and.stars")
+                }
+                .help("Format Code (⌃⌥F)")
+                .disabled(!model.canFormatAny)
+
                 Button(role: .destructive) {
                     if let id = model.currentSnippet?.id { model.deleteSnippet(id) }
                 } label: {
                     Image(systemName: "trash")
                 }
                 .help("Delete Snippet (⌘⌫)")
+                .disabled(model.currentSnippet == nil)
+            }
+        }
+
+        ToolbarItemGroup(placement: .primaryAction) {
+            if model.hasSplit {
+                Button {
+                    model.closeSplit()
+                } label: {
+                    Image(systemName: "rectangle.split.2x1.slash")
+                }
+                .help("Close Split (⌘⌥\\)")
+            } else {
+                Button {
+                    model.splitRight()
+                } label: {
+                    Image(systemName: "rectangle.split.2x1")
+                }
+                .help("Split Right (⌘\\)")
+                .disabled(model.currentSnippet == nil)
+
+                Button {
+                    model.splitDown()
+                } label: {
+                    Image(systemName: "rectangle.split.1x2")
+                }
+                .help("Split Down (⌘⇧\\)")
                 .disabled(model.currentSnippet == nil)
             }
         }

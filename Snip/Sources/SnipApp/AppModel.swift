@@ -484,6 +484,10 @@ final class AppModel {
     /// Whether the Format menu command is available (acts on the focused editor).
     var canFormat: Bool { canFormat(effectiveFocusTarget) }
 
+    /// Whether the top-toolbar Format button should be enabled: at least one
+    /// editor (main, or split when present) has a supported language.
+    var canFormatAny: Bool { canFormat(.main) || (hasSplit && canFormat(.split)) }
+
     /// Reveals the in-editor find bar for `target` (FR-19). Scoped to that
     /// editor's text view; never searches the other editor or across snippets.
     func showFind(_ target: EditorTarget) {
@@ -499,6 +503,38 @@ final class AppModel {
     /// Formats the focused editor via the menu command (`⌃⌥F`).
     func formatFocusedEditor() {
         format(effectiveFocusTarget)
+    }
+
+    /// Formats all visible editors in one pass. Used by the top toolbar button so
+    /// both main and split are formatted without the `isFormatting` guard blocking
+    /// the second call.
+    func formatAll() {
+        guard !isFormatting, currentSnippet != nil else { return }
+        isFormatting = true
+        Task { [weak self, formatter] in
+            defer { self?.isFormatting = false }
+            guard let self else { return }
+            do {
+                for target in ([.main, .split] as [EditorTarget]) where target == .main || self.hasSplit {
+                    let lang = self.language(for: target)
+                    guard self.formatter.supports(lang) else { continue }
+                    let tv = self.textView(for: target)
+                    let source = tv?.string ?? (target == .main ? self.editorText : self.splitEditorText)
+                    guard !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
+                    let result = try await formatter.format(source, language: lang)
+                    if let tv {
+                        tv.replaceAllText(result)
+                    } else if target == .main {
+                        self.editorText = result
+                    } else {
+                        self.splitEditorText = result
+                    }
+                }
+            } catch {
+                let message = (error as? FormatterError)?.userFacingMessage ?? "Formatting failed."
+                self.flashStatus(message)
+            }
+        }
     }
 
     /// Formats a specific editor (FR-7). Runs the formatter off the main actor,
