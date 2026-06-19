@@ -206,12 +206,17 @@ struct SnippetStore: Sendable {
         }
     }
 
-    /// Lightweight hot-path update: only bumps `updated_at` on the editor document.
+    /// Bumps `updated_at` on the editor document and its parent snippet so that
+    /// the snippet re-sorts to the top of the unpinned section.
     func touchEditorDocument(id: UUID, at date: Date) throws {
         try database.write { db in
             try db.execute(
                 sql: "UPDATE editor_documents SET updated_at = ? WHERE id = ?",
                 arguments: [date, id.uuidString]
+            )
+            try db.execute(
+                sql: "UPDATE snippets SET updated_at = ? WHERE main_editor_id = ? OR split_editor_id = ?",
+                arguments: [date, id.uuidString, id.uuidString]
             )
         }
     }
@@ -584,7 +589,7 @@ struct SnippetStore: Sendable {
         let records =
             try SnippetRecord
             .filter(sql: "deleted_at IS NULL")
-            .order(Column("is_pinned").desc, Column("updated_at").desc)
+            .order(sql: "is_pinned ASC, CASE WHEN is_pinned = 0 THEN updated_at ELSE created_at END DESC")
             .fetchAll(db)
         return try records.compactMap { try hydrate($0, db) }
     }

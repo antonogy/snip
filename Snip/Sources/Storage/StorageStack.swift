@@ -78,7 +78,7 @@ public final class StorageStack: Sendable {
 
     // MARK: - Multi-snippet operations
 
-    /// Returns all non-deleted snippets ordered pinned-first, newest-first.
+    /// Returns all non-deleted snippets: unpinned newest-first, then pinned by creation date.
     public func listSnippets() throws -> [Snippet] {
         try snippets.listSnippets()
     }

@@ -113,6 +113,12 @@ struct RootView: View {
 
         ToolbarItemGroup(placement: .primaryAction) {
             if model.hasSplit {
+                if model.splitOrientation == .vertical {
+                    splitRightButton
+                } else {
+                    splitDownButton
+                }
+                
                 Button {
                     model.closeSplit()
                 } label: {
@@ -120,23 +126,32 @@ struct RootView: View {
                 }
                 .help("Close Split (⌘⌥\\)")
             } else {
-                Button {
-                    model.splitRight()
-                } label: {
-                    Image(systemName: "rectangle.split.2x1")
-                }
-                .help("Split Right (⌘\\)")
-                .disabled(model.currentSnippet == nil)
-
-                Button {
-                    model.splitDown()
-                } label: {
-                    Image(systemName: "rectangle.split.1x2")
-                }
-                .help("Split Down (⌘⇧\\)")
-                .disabled(model.currentSnippet == nil)
+                splitRightButton
+                splitDownButton
             }
         }
+    }
+    
+    @ViewBuilder
+    private var splitRightButton: some View {
+        Button {
+            model.splitRight()
+        } label: {
+            Image(systemName: "rectangle.split.2x1")
+        }
+        .help("Split Right (⌘\\)")
+        .disabled(model.currentSnippet == nil)
+    }
+    
+    @ViewBuilder
+    private var splitDownButton: some View {
+        Button {
+            model.splitDown()
+        } label: {
+            Image(systemName: "rectangle.split.1x2")
+        }
+        .help("Split Down (⌘⇧\\)")
+        .disabled(model.currentSnippet == nil)
     }
 
     @ViewBuilder
