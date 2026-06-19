@@ -8,6 +8,9 @@
 .build/
 .swiftpm/
 
+# Release build output
+build/
+
 # Xcode
 xcuserdata/
 *.xccheckout
