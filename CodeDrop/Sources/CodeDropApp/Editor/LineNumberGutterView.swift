@@ -9,7 +9,7 @@ import AppKit
 /// the scroll view composites correctly and gives us full control over the
 /// numbers.
 ///
-/// Operates exclusively in TextKit 1 mode — `SnipEditorView` must build the text
+/// Operates exclusively in TextKit 1 mode — `CodeDropEditorView` must build the text
 /// stack with `NSLayoutManager` before attaching this gutter.
 final class LineNumberGutterView: NSView {
 

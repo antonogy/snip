@@ -2,12 +2,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "Snip",
+    name: "CodeDrop",
     platforms: [
         .macOS(.v15)
     ],
     products: [
-        .executable(name: "Snip", targets: ["SnipApp"]),
+        .executable(name: "CodeDrop", targets: ["CodeDropApp"]),
         .library(name: "SharedModels", targets: ["SharedModels"]),
         .library(name: "SharedUtilities", targets: ["SharedUtilities"]),
         .library(name: "Storage", targets: ["Storage"]),
@@ -105,7 +105,7 @@ let package = Package(
 
         // The macOS app: lifecycle, single window, startup restoration.
         .executableTarget(
-            name: "SnipApp",
+            name: "CodeDropApp",
             dependencies: [
                 "Storage",
                 "SharedModels",

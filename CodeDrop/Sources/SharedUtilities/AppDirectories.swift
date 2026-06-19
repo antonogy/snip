@@ -16,7 +16,7 @@ import Foundation
 /// `makeDefault()`, which lives under Application Support.
 public struct AppDirectories: Sendable, Equatable {
     /// Folder name used under Application Support in production.
-    public static let containerFolderName = "Snip"
+    public static let containerFolderName = "CodeDrop"
 
     public let root: URL
 
@@ -32,7 +32,7 @@ public struct AppDirectories: Sendable, Equatable {
         try fileManager.createDirectory(at: contentsURL, withIntermediateDirectories: true)
     }
 
-    /// Production locations under `~/Library/Application Support/Snip`.
+    /// Production locations under `~/Library/Application Support/CodeDrop`.
     public static func makeDefault(fileManager: FileManager = .default) throws -> AppDirectories {
         let support = try fileManager.url(
             for: .applicationSupportDirectory,

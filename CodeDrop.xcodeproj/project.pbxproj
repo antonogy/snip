@@ -76,13 +76,13 @@
 		BFDE3A542FE09F7900399CA5 /* CLAUDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CLAUDE.md; sourceTree = "<group>"; };
 		BFDE3A552FE09F7900399CA5 /* implementation-plan.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "implementation-plan.md"; sourceTree = "<group>"; };
 		BFDE3A562FE09F7900399CA5 /* spec.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = spec.md; sourceTree = "<group>"; };
-		BFDEBA112FE05A3D00399CA5 /* Snip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Snip.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BFDEBA112FE05A3D00399CA5 /* CodeDrop.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CodeDrop.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		BFDEBA132FE05A3D00399CA5 /* Snip/Sources/SnipApp */ = {
+		BFDEBA132FE05A3D00399CA5 /* CodeDrop/Sources/CodeDropApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Snip/Sources/SnipApp;
+			path = CodeDrop/Sources/CodeDropApp;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -263,7 +263,7 @@
 				BFDE3A532FE09F7900399CA5 /* .claude */,
 				BFDE3A542FE09F7900399CA5 /* CLAUDE.md */,
 				BFDE3A572FE09F7900399CA5 /* docs */,
-				BFDEBA132FE05A3D00399CA5 /* Snip/Sources/SnipApp */,
+				BFDEBA132FE05A3D00399CA5 /* CodeDrop/Sources/CodeDropApp */,
 				BFDEBA122FE05A3D00399CA5 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -271,7 +271,7 @@
 		BFDEBA122FE05A3D00399CA5 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				BFDEBA112FE05A3D00399CA5 /* Snip.app */,
+				BFDEBA112FE05A3D00399CA5 /* CodeDrop.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -279,9 +279,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		BFDEBA102FE05A3C00399CA5 /* Snip */ = {
+		BFDEBA102FE05A3C00399CA5 /* CodeDrop */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = BFDEBA1C2FE05A4000399CA5 /* Build configuration list for PBXNativeTarget "Snip" */;
+			buildConfigurationList = BFDEBA1C2FE05A4000399CA5 /* Build configuration list for PBXNativeTarget "CodeDrop" */;
 			buildPhases = (
 				BFDEBA0D2FE05A3C00399CA5 /* Sources */,
 				BFDEBA0E2FE05A3C00399CA5 /* Frameworks */,
@@ -292,9 +292,9 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				BFDEBA132FE05A3D00399CA5 /* Snip/Sources/SnipApp */,
+				BFDEBA132FE05A3D00399CA5 /* CodeDrop/Sources/CodeDropApp */,
 			);
-			name = Snip;
+			name = CodeDrop;
 			packageProductDependencies = (
 				BFDE1A0000001002000000A5 /* SharedModels */,
 				BFDE1A0000001003000000A5 /* SharedUtilities */,
@@ -302,8 +302,8 @@
 				BFDE1A0000001005000000A5 /* Highlighting */,
 				BFDE1A0000001006000000A5 /* Formatting */,
 			);
-			productName = Snip;
-			productReference = BFDEBA112FE05A3D00399CA5 /* Snip.app */;
+			productName = CodeDrop;
+			productReference = BFDEBA112FE05A3D00399CA5 /* CodeDrop.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -321,7 +321,7 @@
 					};
 				};
 			};
-			buildConfigurationList = BFDEBA0C2FE05A3C00399CA5 /* Build configuration list for PBXProject "Snip" */;
+			buildConfigurationList = BFDEBA0C2FE05A3C00399CA5 /* Build configuration list for PBXProject "CodeDrop" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -331,14 +331,14 @@
 			mainGroup = BFDEBA082FE05A3C00399CA5;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				BFDE1A0000001001000000A5 /* XCLocalSwiftPackageReference "Snip" */,
+				BFDE1A0000001001000000A5 /* XCLocalSwiftPackageReference "CodeDrop" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BFDEBA122FE05A3D00399CA5 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				BFDEBA102FE05A3C00399CA5 /* Snip */,
+				BFDEBA102FE05A3C00399CA5 /* CodeDrop */,
 			);
 		};
 /* End PBXProject section */
@@ -500,7 +500,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.antonogy.Snip;
+				PRODUCT_BUNDLE_IDENTIFIER = com.antonogy.CodeDrop;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -530,7 +530,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.antonogy.Snip;
+				PRODUCT_BUNDLE_IDENTIFIER = com.antonogy.CodeDrop;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -545,7 +545,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		BFDEBA0C2FE05A3C00399CA5 /* Build configuration list for PBXProject "Snip" */ = {
+		BFDEBA0C2FE05A3C00399CA5 /* Build configuration list for PBXProject "CodeDrop" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				BFDEBA1A2FE05A4000399CA5 /* Debug */,
@@ -554,7 +554,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		BFDEBA1C2FE05A4000399CA5 /* Build configuration list for PBXNativeTarget "Snip" */ = {
+		BFDEBA1C2FE05A4000399CA5 /* Build configuration list for PBXNativeTarget "CodeDrop" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				BFDEBA1D2FE05A4000399CA5 /* Debug */,
@@ -566,36 +566,36 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		BFDE1A0000001001000000A5 /* XCLocalSwiftPackageReference "Snip" */ = {
+		BFDE1A0000001001000000A5 /* XCLocalSwiftPackageReference "CodeDrop" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = Snip;
+			relativePath = CodeDrop;
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		BFDE1A0000001002000000A5 /* SharedModels */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = BFDE1A0000001001000000A5 /* XCLocalSwiftPackageReference "Snip" */;
+			package = BFDE1A0000001001000000A5 /* XCLocalSwiftPackageReference "CodeDrop" */;
 			productName = SharedModels;
 		};
 		BFDE1A0000001003000000A5 /* SharedUtilities */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = BFDE1A0000001001000000A5 /* XCLocalSwiftPackageReference "Snip" */;
+			package = BFDE1A0000001001000000A5 /* XCLocalSwiftPackageReference "CodeDrop" */;
 			productName = SharedUtilities;
 		};
 		BFDE1A0000001004000000A5 /* Storage */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = BFDE1A0000001001000000A5 /* XCLocalSwiftPackageReference "Snip" */;
+			package = BFDE1A0000001001000000A5 /* XCLocalSwiftPackageReference "CodeDrop" */;
 			productName = Storage;
 		};
 		BFDE1A0000001005000000A5 /* Highlighting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = BFDE1A0000001001000000A5 /* XCLocalSwiftPackageReference "Snip" */;
+			package = BFDE1A0000001001000000A5 /* XCLocalSwiftPackageReference "CodeDrop" */;
 			productName = Highlighting;
 		};
 		BFDE1A0000001006000000A5 /* Formatting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = BFDE1A0000001001000000A5 /* XCLocalSwiftPackageReference "Snip" */;
+			package = BFDE1A0000001001000000A5 /* XCLocalSwiftPackageReference "CodeDrop" */;
 			productName = Formatting;
 		};
 /* End XCSwiftPackageProductDependency section */

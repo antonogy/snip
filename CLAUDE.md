@@ -6,32 +6,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Build the app
-cd Snip && swift build
+cd CodeDrop && swift build
 
 # Run the app (opens the macOS window)
-cd Snip && swift run Snip
+cd CodeDrop && swift run CodeDrop
 
 # Headless startup verification (exercises full launch/restore path without opening a window)
-cd Snip && swift run Snip --self-check
+cd CodeDrop && swift run CodeDrop --self-check
 
 # Run all tests
-cd Snip && swift test
+cd CodeDrop && swift test
 
 # Run a single test by name
-cd Snip && swift test --filter migrationsCreateExpectedSchema
+cd CodeDrop && swift test --filter migrationsCreateExpectedSchema
 
 # Format code (uses .swift-format config: 4-space indent, 110 char line length)
-cd Snip && swift-format format --in-place --recursive Sources/ Tests/
+cd CodeDrop && swift-format format --in-place --recursive Sources/ Tests/
 ```
 
-The Xcode project (`Snip.xcodeproj`) is the preferred way to build for distribution; `swift build` is fine for development and CI.
+The Xcode project (`CodeDrop.xcodeproj`) is the preferred way to build for distribution; `swift build` is fine for development and CI.
 
 ## Architecture
 
 ### Module Dependency Graph
 
 ```
-SnipApp (executable)
+CodeDropApp (executable)
   └── Storage
         └── SharedModels
         └── SharedUtilities
@@ -46,17 +46,17 @@ SnipApp (executable)
 
 | Type | Module | Role |
 |------|--------|------|
-| `AppModel` | SnipApp | `@Observable` root owned by `SnipApp`; single source of truth for settings, app state, and storage health. Injected into the view hierarchy via `.environment(model)`. |
+| `AppModel` | CodeDropApp | `@Observable` root owned by `CodeDropApp`; single source of truth for settings, app state, and storage health. Injected into the view hierarchy via `.environment(model)`. |
 | `StorageStack` | Storage | Composition root for persistence. Owns the GRDB `DatabaseQueue`, `ContentStore`, and `JSONConfigStore`. Built once at launch; `Sendable`. |
-| `AppDirectories` | SharedUtilities | Resolves all on-disk paths. Inject a temp directory in tests; production resolves `~/Library/Application Support/Snip/`. |
+| `AppDirectories` | SharedUtilities | Resolves all on-disk paths. Inject a temp directory in tests; production resolves `~/Library/Application Support/CodeDrop/`. |
 | `ContentStore` | Storage | Manages flat `.txt` files under `contents/`. Metadata rows store only relative filenames (`editor_<uuid>.txt`); this type makes them absolute. |
 | `Migrations` | Storage | Append-only GRDB migrations. **Never edit a registered migration** — add a new one. |
-| `SelfCheck` | SnipApp | Headless smoke-test invoked via `--self-check`. Exercises the full storage init path without opening a window. |
+| `SelfCheck` | CodeDropApp | Headless smoke-test invoked via `--self-check`. Exercises the full storage init path without opening a window. |
 
 ### Storage Layout
 
 ```
-~/Library/Application Support/Snip/
+~/Library/Application Support/CodeDrop/
 ├── metadata.sqlite       ← GRDB: snippets, editor_documents, recovery_items
 ├── app_state.json        ← sidebar visibility, window frame, selected snippet
 ├── settings.json         ← appearance, expiration days, word wrap
@@ -68,7 +68,7 @@ SQLite holds all metadata; editor text lives in separate files to keep the datab
 
 ### Startup / Restoration Flow
 
-`Entrypoint.main()` → intercepts `--self-check` early → else `SnipApp.main()` → `AppModel.init()` → `StorageStack.init()` (DB open + migrations) → `stack.restore()` (loads `app_state.json` + `settings.json`). If `StorageStack` throws, `AppModel` surfaces `initializationError` and runs with defaults rather than crashing — reliability over correctness on launch.
+`Entrypoint.main()` → intercepts `--self-check` early → else `CodeDropApp.main()` → `AppModel.init()` → `StorageStack.init()` (DB open + migrations) → `stack.restore()` (loads `app_state.json` + `settings.json`). If `StorageStack` throws, `AppModel` surfaces `initializationError` and runs with defaults rather than crashing — reliability over correctness on launch.
 
 ### Autosave Pattern
 
@@ -77,7 +77,7 @@ Window geometry changes debounce 500 ms via a cancellable `Task`, then flush to 
 ## Project Constraints
 
 - **macOS 15+ only** (Sequoia). Swift 6 strict concurrency is enabled (`swiftLanguageModes: [.v6]`).
-- **Single window** — `Window("Snip", id: "main")`. Never add a second scene or window.
+- **Single window** — `Window("", id: "main")`. Never add a second scene or window.
 - **No telemetry, no plugins, no onboarding, no IDE features** — enforced in `.claude/rules/project.md`.
 - **No direct SQLite from UI** — views read only from `AppModel`; only `Storage` module touches GRDB.
 - **Business logic stays out of views** — SwiftUI files contain layout and bindings only.

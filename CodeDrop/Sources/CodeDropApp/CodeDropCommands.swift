@@ -3,7 +3,7 @@ import SwiftUI
 /// Menu-bar commands for the split editor. The full command palette (FR-6) lands
 /// in a later milestone; these expose Milestone 5's split actions with keyboard
 /// shortcuts in a `View` menu.
-struct SnipCommands: Commands {
+struct CodeDropCommands: Commands {
     let model: AppModel
 
     var body: some Commands {

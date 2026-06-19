@@ -17,7 +17,7 @@ import SwiftUI
 /// runs off the main actor on the `SyntaxHighlighter` actor and is debounced.
 ///
 /// Undo/redo comes for free from `NSTextView`'s built-in undo manager.
-struct SnipEditorView: NSViewRepresentable {
+struct CodeDropEditorView: NSViewRepresentable {
     @Binding var text: String
     var wordWrap: Bool
     var language: CodeLanguage
@@ -179,7 +179,7 @@ struct SnipEditorView: NSViewRepresentable {
 
     @MainActor
     final class Coordinator: NSObject, NSTextViewDelegate {
-        var parent: SnipEditorView
+        var parent: CodeDropEditorView
         weak var textView: NSTextView?
         weak var gutter: LineNumberGutterView?
 
@@ -188,7 +188,7 @@ struct SnipEditorView: NSViewRepresentable {
         private var currentLanguage: CodeLanguage = .plainText
         private var highlightTask: Task<Void, Never>?
 
-        init(_ parent: SnipEditorView) {
+        init(_ parent: CodeDropEditorView) {
             self.parent = parent
         }
 

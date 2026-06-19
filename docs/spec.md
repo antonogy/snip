@@ -1,4 +1,4 @@
-# Snip - a scratchpad for Developers
+# CodeDrop - a scratchpad for Developers
 
 ## Product Specification v1.0
 
@@ -6,7 +6,7 @@
 
 # 1. Vision
 
-Snip is a native macOS application for temporary code snippets.
+CodeDrop is a native macOS application for temporary code snippets.
 
 It is designed for developers who need a fast place to:
 
@@ -83,7 +83,7 @@ Examples:
 
 ## 2.5 Temporary-First
 
-Snippets are temporary by default.
+CodeDroppets are temporary by default.
 
 Persistence exists only to prevent accidental data loss.
 
@@ -163,7 +163,7 @@ intelligent.
 
 # 4. Functional Requirements
 
-## FR-1 Snippet Lifecycle
+## FR-1 CodeDroppet Lifecycle
 
 * snippets are temporary by default
 * snippets are automatically saved
@@ -252,7 +252,7 @@ Auto title is always generated from main editor.
 
 ---
 
-## FR-5 Snippet Navigation
+## FR-5 CodeDroppet Navigation
 
 Navigation uses compact sidebar cards.
 
@@ -323,10 +323,10 @@ Formatting never runs automatically.
 
 Supported shortcuts:
 
-* ⌘N New Snippet
+* ⌘N New CodeDroppet
 * ⌘B Toggle Sidebar
-* ⌘⌫ Delete Snippet
-* ⌘1-⌘9 Switch Snippet
+* ⌘⌫ Delete CodeDroppet
+* ⌘1-⌘9 Switch CodeDroppet
 
 Additional shortcuts TBD.
 
@@ -433,7 +433,7 @@ Empty editor automatically returns to Auto Detect mode.
 
 ---
 
-## FR-15 New Snippet Creation
+## FR-15 New CodeDroppet Creation
 
 Creating a snippet:
 
@@ -462,7 +462,7 @@ and runs as part of restore without delaying first paint.
 
 ---
 
-## FR-17 Snippet Switching Performance
+## FR-17 CodeDroppet Switching Performance
 
 Switching snippets should feel like switching browser tabs.
 
@@ -476,7 +476,7 @@ No progress indicators.
 
 First launch:
 
-Open App → Empty Snippet → Type
+Open App → Empty CodeDroppet → Type
 
 No onboarding flow.
 
@@ -530,7 +530,7 @@ The application's top toolbar (principal/centre slot and right action slot).
 
 **Sidebar bottom-left:**
 
-* **New Snippet** — creates a snippet per FR-15; respects the snippet limit
+* **New CodeDroppet** — creates a snippet per FR-15; respects the snippet limit
   (FR-21)
 
 State:
@@ -544,11 +544,11 @@ State:
 
 ## FR-21 Limits
 
-### Snippet Count
+### CodeDroppet Count
 
 * maximum 100 active snippets
 * "active" excludes deleted and expired snippets held in Recovery (FR-11)
-* when the cap is reached, New Snippet (FR-15, FR-20, ⌘N) is disabled with a
+* when the cap is reached, New CodeDroppet (FR-15, FR-20, ⌘N) is disabled with a
   subtle, non-modal hint — no dialog, no interruption (§2.6)
 * deleting, expiring, or clearing snippets frees capacity
 
@@ -571,7 +571,7 @@ Typing:
 
 <16 ms target
 
-Snippet switch:
+CodeDroppet switch:
 
 <100 ms target
 
@@ -622,14 +622,14 @@ Supported CPUs:
 
 # 6. Data Model
 
-## Snippet
+## CodeDroppet
 
 ```swift
-struct Snippet {
+struct CodeDroppet {
     let id: UUID
 
     var title: String
-    var titleSource: SnippetTitleSource
+    var titleSource: CodeDroppetTitleSource
 
     var mainEditor: EditorDocument
     var splitEditor: EditorDocument?
@@ -671,7 +671,7 @@ struct EditorDocument {
 
 ```swift
 struct AppState {
-    var selectedSnippetId: UUID?
+    var selectedCodeDroppetId: UUID?
 
     var sidebarVisible: Bool
     var sidebarWidth: Double
@@ -725,7 +725,7 @@ Content stored as separate files.
 ```text
 App
 ├─ UI
-├─ Snippets
+├─ CodeDroppets
 ├─ Editor
 ├─ Language
 ├─ Formatting
@@ -819,7 +819,7 @@ Examples:
 * Format SQL
 * Pretty Print Minified Code
 * Choose Language
-* Pin Snippet Suggestion
+* Pin CodeDroppet Suggestion
 
 Must remain:
 
@@ -845,13 +845,13 @@ Shortcut (when implemented):
 
 Proposed commands:
 
-### Snippets
+### CodeDroppets
 
-* New Snippet
-* Delete Snippet
-* Pin Snippet
-* Unpin Snippet
-* Clear Expired Snippets
+* New CodeDroppet
+* Delete CodeDroppet
+* Pin CodeDroppet
+* Unpin CodeDroppet
+* Clear Expired CodeDroppets
 
 ### Editor
 

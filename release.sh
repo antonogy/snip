@@ -2,11 +2,11 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
-PROJECT="$PROJECT_ROOT/Snip.xcodeproj"
-SCHEME="Snip"
+PROJECT="$PROJECT_ROOT/CodeDrop.xcodeproj"
+SCHEME="CodeDrop"
 CONFIGURATION="Release"
 DERIVED_DATA="$PROJECT_ROOT/build/DerivedData"
-ARCHIVE_PATH="$PROJECT_ROOT/build/Snip.xcarchive"
+ARCHIVE_PATH="$PROJECT_ROOT/build/CodeDrop.xcarchive"
 EXPORT_PATH="$PROJECT_ROOT/build/export"
 EXPORT_PLIST="$PROJECT_ROOT/build/ExportOptions.plist"
 
@@ -48,7 +48,7 @@ xcodebuild -exportArchive \
     -exportPath "$EXPORT_PATH" \
     -exportOptionsPlist "$EXPORT_PLIST"
 
-APP="$EXPORT_PATH/Snip.app"
+APP="$EXPORT_PATH/CodeDrop.app"
 VERSION=$(defaults read "$APP/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "unknown")
 BUILD=$(defaults read "$APP/Contents/Info" CFBundleVersion 2>/dev/null || echo "unknown")
 

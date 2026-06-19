@@ -12,6 +12,6 @@ enum Entrypoint {
         if CommandLine.arguments.contains("--self-check") {
             exit(SelfCheck.run())
         }
-        SnipApp.main()
+        CodeDropApp.main()
     }
 }

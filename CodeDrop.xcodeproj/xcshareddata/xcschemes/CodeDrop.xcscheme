@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "BFDEBA102FE05A3C00399CA5"
-               BuildableName = "Snip.app"
-               BlueprintName = "Snip"
-               ReferencedContainer = "container:Snip.xcodeproj">
+               BuildableName = "CodeDrop.app"
+               BlueprintName = "CodeDrop"
+               ReferencedContainer = "container:CodeDrop.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -46,9 +46,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "BFDEBA102FE05A3C00399CA5"
-            BuildableName = "Snip.app"
-            BlueprintName = "Snip"
-            ReferencedContainer = "container:Snip.xcodeproj">
+            BuildableName = "CodeDrop.app"
+            BlueprintName = "CodeDrop"
+            ReferencedContainer = "container:CodeDrop.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -63,9 +63,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "BFDEBA102FE05A3C00399CA5"
-            BuildableName = "Snip.app"
-            BlueprintName = "Snip"
-            ReferencedContainer = "container:Snip.xcodeproj">
+            BuildableName = "CodeDrop.app"
+            BlueprintName = "CodeDrop"
+            ReferencedContainer = "container:CodeDrop.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

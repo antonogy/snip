@@ -2,7 +2,7 @@ import SwiftUI
 
 /// The SwiftUI app. A single, unique `Window` satisfies the single-window
 /// constraint; appearance follows the restored settings.
-struct SnipApp: App {
+struct CodeDropApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var model = AppModel()
 
@@ -13,7 +13,7 @@ struct SnipApp: App {
                 .preferredColorScheme(model.colorScheme)
         }
         .commands {
-            SnipCommands(model: model)
+            CodeDropCommands(model: model)
         }
     }
 }

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "$(dirname "$0")/Snip"
+cd "$(dirname "$0")/CodeDrop"
 
 echo "Building..."
 swift build
 
 echo "Running..."
-swift run Snip
+swift run CodeDrop

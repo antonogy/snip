@@ -9,7 +9,7 @@ struct EditorPane: View {
 
     var body: some View {
         @Bindable var model = model
-        SnipEditorView(
+        CodeDropEditorView(
             text: target == .main ? $model.editorText : $model.splitEditorText,
             wordWrap: model.settings.wordWrapEnabled,
             language: target == .main ? model.mainLanguage : model.splitLanguage,

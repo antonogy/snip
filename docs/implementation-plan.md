@@ -1,4 +1,4 @@
-# Snip - a scratchpad for Developers
+# CodeDrop - a scratchpad for Developers
 
 # Implementation Plan v1.0
 
@@ -87,7 +87,7 @@ Reason:
 ```text
 App
 ├─ UI
-├─ Snippets
+├─ CodeDroppets
 ├─ Editor
 ├─ Language
 ├─ Formatting
@@ -120,11 +120,11 @@ SQLite
 # 4. Repository Structure
 
 ```text
-Snip/
-├─ SnipApp/
+CodeDrop/
+├─ CodeDropApp/
 │
 ├─ Packages/
-│   ├─ Snippets/
+│   ├─ CodeDroppets/
 │   ├─ Editor/
 │   ├─ Language/
 │   ├─ Formatting/
@@ -266,7 +266,7 @@ No data loss during normal usage.
 
 ---
 
-# Milestone 4 — Snippets
+# Milestone 4 — CodeDroppets
 
 Estimated Outcome:
 
@@ -434,7 +434,7 @@ Per-editor and top-level toolbars, plus safety limits.
   * centre slot — Pin/Unpin, Format Code (formats all editors, gated per FR-7),
     Delete
   * right slot — Split Right / Split Down (or Close Split when split active)
-  * sidebar bottom-left — New Snippet button
+  * sidebar bottom-left — New CodeDroppet button
 * snippet limit — max 100 active snippets, excluding Recovery (FR-21)
 * paste-size guard — prevent crashes/freezes on oversized input (FR-21)
 
@@ -443,7 +443,7 @@ Per-editor and top-level toolbars, plus safety limits.
 * editor toolbar component, with independent state per editor / split
 * in-editor find (NSTextFinder / TextKit-backed), scoped to a single editor
 * top toolbar wiring to pin, format-all, delete, and split commands
-* sidebar New Snippet button with cap enforcement and non-modal hint at limit
+* sidebar New CodeDroppet button with cap enforcement and non-modal hint at limit
 * content-size guard plus investigation of the maximum safe paste size
 
 ## Exit Criteria
@@ -620,7 +620,7 @@ Target:
 
 ---
 
-## Snippet Switching
+## CodeDroppet Switching
 
 Target:
 
@@ -720,4 +720,4 @@ The application is considered MVP complete when:
 * split editor works
 * syntax highlighting works
 * formatting works
-* application remains faithful to the Developer Snip First philosophy
+* application remains faithful to the Developer CodeDrop First philosophy
