@@ -68,13 +68,12 @@ struct RootView: View {
         }
     }
 
-    /// The application's top toolbar, right of the "Snip" title (FR-20): New
-    /// Snippet and Pin/Unpin, plus the existing Recovery entry point. Snippet-
-    /// scoped buttons disable when there is no selection; New Snippet disables at
-    /// the snippet cap (FR-21).
+    /// The application's top toolbar (FR-20):
+    /// - New Snippet on the left (navigation slot, next to window title)
+    /// - Snippet title + Pin/Unpin + Delete centred in the title bar
     @ToolbarContentBuilder
     private func topToolbar(model: AppModel) -> some ToolbarContent {
-        ToolbarItemGroup(placement: .automatic) {
+        ToolbarItem(placement: .navigation) {
             Button {
                 model.createSnippet()
             } label: {
@@ -85,22 +84,36 @@ struct RootView: View {
                     ? "New Snippet (⌘N)" : "Snippet limit reached (\(Limits.maxActiveSnippets))"
             )
             .disabled(!model.canCreateSnippet)
+        }
 
-            let isPinned = model.currentSnippet?.isPinned ?? false
-            Button {
-                if let id = model.currentSnippet?.id { model.togglePin(id) }
-            } label: {
-                Image(systemName: isPinned ? "pin.slash" : "pin")
-            }
-            .help(isPinned ? "Unpin (⌘P)" : "Pin (⌘P)")
-            .disabled(model.currentSnippet == nil)
+        ToolbarItem(placement: .principal) {
+            HStack(spacing: 4) {
+                let isPinned = model.currentSnippet?.isPinned ?? false
 
-            Button {
-                model.showRecovery()
-            } label: {
-                Image(systemName: "clock.arrow.circlepath")
+                if let snippet = model.currentSnippet {
+                    Text(snippet.title)
+                        .font(.headline)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(maxWidth: 200)
+                }
+
+                Button {
+                    if let id = model.currentSnippet?.id { model.togglePin(id) }
+                } label: {
+                    Image(systemName: isPinned ? "pin.slash" : "pin")
+                }
+                .help(isPinned ? "Unpin (⌘P)" : "Pin (⌘P)")
+                .disabled(model.currentSnippet == nil)
+
+                Button(role: .destructive) {
+                    if let id = model.currentSnippet?.id { model.deleteSnippet(id) }
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .help("Delete Snippet (⌘⌫)")
+                .disabled(model.currentSnippet == nil)
             }
-            .help("Recovery")
         }
     }
 
