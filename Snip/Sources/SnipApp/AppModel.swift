@@ -401,12 +401,7 @@ final class AppModel {
         guard !isLoadingContent, let snippet = currentSnippet, let editor = snippet.splitEditor else {
             return
         }
-        if splitEditorText.isEmpty {
-            if editor.languageMode != .auto || editor.language != .plainText {
-                applySplitLanguage(.plainText, mode: .auto)
-            }
-            return
-        }
+        guard !splitEditorText.isEmpty else { return }
         guard editor.languageMode == .auto else { return }
         let detected = LanguageDetector.detect(splitEditorText)
         if detected != editor.language {

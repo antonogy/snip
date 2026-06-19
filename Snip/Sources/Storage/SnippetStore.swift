@@ -427,7 +427,7 @@ struct SnippetStore: Sendable {
 
     // MARK: - Split editor
 
-    /// Creates the snippet's split editor (inheriting the main editor's language) or,
+    /// Creates the snippet's split editor (plain text, independent of the main editor) or,
     /// if one already exists, just re-orients it — enforcing the "one split only" rule.
     /// Returns the hydrated snippet and, when a new editor was created, its content path
     /// so the caller can write the (empty) backing file.
@@ -442,14 +442,11 @@ struct SnippetStore: Sendable {
             }
 
             if sr.splitEditorId == nil {
-                guard let mainRec = try EditorDocumentRecord.fetchOne(db, key: sr.mainEditorId) else {
-                    throw StorageError.missingSnippet(snippetId.uuidString)
-                }
                 let editorID = UUID()
                 let doc = EditorDocument(
                     id: editorID,
                     contentFilePath: ContentStore.fileName(for: editorID),
-                    language: mainRec.toModel().language,
+                    language: .plainText,
                     languageMode: .auto,
                     createdAt: now,
                     updatedAt: now
