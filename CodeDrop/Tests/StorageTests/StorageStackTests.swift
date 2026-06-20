@@ -119,7 +119,7 @@ private func makeTempDirectories() throws -> AppDirectories {
 
     #expect(!snippet.id.uuidString.isEmpty)
     #expect(content == "")
-    #expect(snippet.title == "Plain Text 1")
+    #expect(snippet.title == "")  // titles are content-derived (FR-2 Smart Titles)
     #expect(!snippet.mainEditor.contentFilePath.isEmpty)
 }
 
@@ -171,7 +171,7 @@ private func makeTempDirectories() throws -> AppDirectories {
     #expect(list[1].updatedAt >= list[2].updatedAt)
 }
 
-@Test func createSnippetGeneratesTitle() throws {
+@Test func createSnippetHasEmptyTitle() throws {
     let directories = try makeTempDirectories()
     defer { try? FileManager.default.removeItem(at: directories.root) }
 
@@ -179,8 +179,38 @@ private func makeTempDirectories() throws -> AppDirectories {
     let first = try stack.createSnippet()
     let second = try stack.createSnippet()
 
-    #expect(first.title == "Plain Text 1")
-    #expect(second.title == "Plain Text 2")
+    // No more numbered counter — titles are content-derived (FR-2 Smart Titles).
+    #expect(first.title == "")
+    #expect(second.title == "")
+}
+
+@Test func setSnippetTitleStoresFirstContentLine() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let snippet = try stack.createSnippet()
+
+    try stack.setSnippetTitle(id: snippet.id, title: "func hello() {")
+
+    let restored = try #require(stack.listSnippets().first(where: { $0.id == snippet.id }))
+    #expect(restored.title == "func hello() {")
+}
+
+@Test func loadContentHeadReturnsOnlyHead() throws {
+    let directories = try makeTempDirectories()
+    defer { try? FileManager.default.removeItem(at: directories.root) }
+
+    let stack = try StorageStack(directories: directories)
+    let snippet = try stack.createSnippet()
+
+    // Empty / missing content reads as "".
+    #expect(try stack.loadContentHead(for: snippet.mainEditor) == "")
+
+    let body = String(repeating: "x", count: 5_000)
+    try stack.saveEditorContent(body, for: snippet.mainEditor)
+    let head = try stack.loadContentHead(for: snippet.mainEditor, maxBytes: 100)
+    #expect(head.count == 100)
 }
 
 @Test func deleteSnippetHidesFromList() throws {
@@ -420,19 +450,19 @@ private func makeTempDirectories() throws -> AppDirectories {
 
 // MARK: - Milestone 6: Language detection persistence
 
-@Test func setMainLanguageUpdatesLanguageAndRetitles() throws {
+@Test func setMainLanguageDoesNotTouchTitle() throws {
     let directories = try makeTempDirectories()
     defer { try? FileManager.default.removeItem(at: directories.root) }
 
     let stack = try StorageStack(directories: directories)
     let snippet = try stack.createSnippet()
-    #expect(snippet.title == "Plain Text 1")
+    #expect(snippet.title == "")
 
     let updated = try stack.setMainLanguage(snippetId: snippet.id, language: .swift, mode: .auto)
     #expect(updated.mainEditor.language == .swift)
     #expect(updated.mainEditor.languageMode == .auto)
-    // Automatic title follows the detected language (FR-2).
-    #expect(updated.title == "Swift 1")
+    // Language no longer drives the title (FR-2 Smart Titles).
+    #expect(updated.title == "")
 }
 
 @Test func setMainLanguageManualModePersists() throws {
@@ -449,7 +479,6 @@ private func makeTempDirectories() throws -> AppDirectories {
     let restored = try #require(relaunched.listSnippets().first(where: { $0.id == snippet.id }))
     #expect(restored.mainEditor.language == .python)
     #expect(restored.mainEditor.languageMode == .manual)
-    #expect(restored.title == "Python 1")
 }
 
 @Test func setSplitLanguageDoesNotAffectTitle() throws {
@@ -467,20 +496,6 @@ private func makeTempDirectories() throws -> AppDirectories {
     // Main editor and title are untouched — auto title derives from main only (FR-4).
     #expect(updated.mainEditor.language == .plainText)
     #expect(updated.title == originalTitle)
-}
-
-@Test func retitlingNumbersIndependentlyPerLanguage() throws {
-    let directories = try makeTempDirectories()
-    defer { try? FileManager.default.removeItem(at: directories.root) }
-
-    let stack = try StorageStack(directories: directories)
-    let a = try stack.createSnippet()  // Plain Text 1
-    let b = try stack.createSnippet()  // Plain Text 2
-
-    let aSwift = try stack.setMainLanguage(snippetId: a.id, language: .swift, mode: .auto)
-    let bSwift = try stack.setMainLanguage(snippetId: b.id, language: .swift, mode: .auto)
-    #expect(aSwift.title == "Swift 1")
-    #expect(bSwift.title == "Swift 2")
 }
 
 // MARK: - Milestone 10: Expiration & Recovery

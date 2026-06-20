@@ -24,6 +24,11 @@ final class AppModel {
     private(set) var snippets: [Snippet] = []
     private(set) var currentSnippet: Snippet?
 
+    /// First few non-empty content lines per snippet, shown in the sidebar card
+    /// (FR-2 Smart Titles). Rebuilt from content-file heads on list changes and
+    /// kept live for the current snippet on each save.
+    private(set) var previews: [UUID: [String]] = [:]
+
     /// Deleted/expired snippets awaiting purge; populated when the Recovery sheet opens.
     private(set) var recoveryItems: [RecoveryItem] = []
     /// Drives the Recovery sheet. Settable so a menu command can present it.
@@ -108,6 +113,7 @@ final class AppModel {
                     self.splitEditorText = splitText
                     self.isLoadingContent = false
                 }
+                rebuildPreviews()
                 log.info("Restored state on launch, \(list.count) snippet(s)")
             } catch {
                 log.error("Failed to restore snippets: \(error.localizedDescription, privacy: .public)")
@@ -594,9 +600,14 @@ final class AppModel {
 
     private func flushEditorContent() {
         editorSaveTask?.cancel()
-        guard let stack, let doc = currentSnippet?.mainEditor else { return }
+        guard let stack, let snippet = currentSnippet else { return }
+        let doc = snippet.mainEditor
         do {
             try stack.saveEditorContent(editorText, for: doc)
+            // Keep the sidebar preview and the single-line Recovery label in sync
+            // with the main editor's content (FR-2 Smart Titles).
+            previews[snippet.id] = SnippetPreview.previewLines(from: editorText)
+            try stack.setSnippetTitle(id: snippet.id, title: SnippetPreview.previewTitle(from: editorText))
         } catch {
             log.error("Failed to autosave editor content: \(error.localizedDescription, privacy: .public)")
         }
@@ -653,8 +664,30 @@ final class AppModel {
             if let current = currentSnippet {
                 currentSnippet = snippets.first(where: { $0.id == current.id })
             }
+            rebuildPreviews()
         } catch {
             log.error("Failed to refresh snippet list: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    /// The sidebar preview lines for a snippet (FR-2 Smart Titles).
+    func preview(for id: UUID) -> [String] { previews[id] ?? [] }
+
+    /// Rebuilds the preview cache from each snippet's content-file head. The
+    /// current snippet uses the live in-memory text so it reflects edits before
+    /// the autosave debounce fires.
+    private func rebuildPreviews() {
+        guard let stack else { return }
+        var map: [UUID: [String]] = [:]
+        for snippet in snippets {
+            let text: String
+            if snippet.id == currentSnippet?.id {
+                text = editorText
+            } else {
+                text = (try? stack.loadContentHead(for: snippet.mainEditor)) ?? ""
+            }
+            map[snippet.id] = SnippetPreview.previewLines(from: text)
+        }
+        previews = map
     }
 }

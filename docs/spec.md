@@ -187,17 +187,22 @@ Default expiration:
 
 ---
 
-## FR-2 Auto Titles
+## FR-2 Smart Titles
 
-Titles are automatically generated.
+Snippets have no separate generated title. The sidebar card shows a live preview
+of the snippet's content instead:
 
-MVP format:
+* the first up to 3 non-empty lines of the main editor
+* equal-weight monospace
+* an empty snippet shows a dim "Empty" placeholder
 
-* TypeScript 1
-* JSON 2
-* Swift 3
+The language is shown separately on the card, so the preview need not repeat it.
 
-Manual title editing is not supported.
+A single-line label (the first content line) is retained internally for the
+Recovery list. Manual title editing is not supported.
+
+The preview is derived from a small head of the content file, never a full read,
+so it has no noticeable performance impact.
 
 ---
 
@@ -802,14 +807,6 @@ No login items.
 ---
 
 # 10. Future Exploration Backlog
-
-## Smart Titles
-
-Evaluate content-derived titles.
-
-Implement only if no noticeable performance impact.
-
----
 
 ## Contextual Subtle Actions
 

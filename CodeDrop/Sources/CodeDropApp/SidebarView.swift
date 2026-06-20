@@ -9,7 +9,7 @@ struct SidebarView: View {
         ZStack(alignment: .bottomLeading) {
             ScrollViewReader { proxy in
                 List(Array(model.snippets.enumerated()), id: \.element.id, selection: $selectedId) { index, snippet in
-                    SnippetCard(snippet: snippet, index: index)
+                    SnippetCard(snippet: snippet, index: index, preview: model.preview(for: snippet.id))
                         .tag(snippet.id)
                         .contextMenu {
                             Button(snippet.isPinned ? "Unpin" : "Pin") {
@@ -69,13 +69,13 @@ struct SidebarView: View {
 struct SnippetCard: View {
     let snippet: Snippet
     let index: Int
+    /// First few content lines (FR-2 Smart Titles), empty for an empty snippet.
+    let preview: [String]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            HStack {
-                Text(snippet.title)
-                    .font(.system(.body, weight: .medium))
-                    .lineLimit(1)
+            HStack(alignment: .top) {
+                contentPreview
                 Spacer(minLength: 0)
                 if snippet.isPinned {
                     Image(systemName: "pin.fill")
@@ -84,9 +84,12 @@ struct SnippetCard: View {
                 }
             }
             HStack {
-                Text(snippet.mainEditor.language.displayName)
-                    .font(.caption)
+                Text(snippet.mainEditor.language.displayName.uppercased())
+                    .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(.secondary)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(.secondary.opacity(0.12), in: Capsule())
                 if snippet.splitEditor != nil {
                     Image(systemName: "rectangle.split.2x1")
                         .font(.caption2)
@@ -104,5 +107,25 @@ struct SnippetCard: View {
         }
         .padding(.vertical, 2)
         .contentShape(Rectangle())
+    }
+
+    /// Up to three content lines in equal-weight monospace, or a dim placeholder
+    /// when the snippet has no content yet.
+    @ViewBuilder
+    private var contentPreview: some View {
+        if preview.isEmpty {
+            Text("Empty")
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(.tertiary)
+        } else {
+            VStack(alignment: .leading, spacing: 1) {
+                ForEach(Array(preview.enumerated()), id: \.offset) { _, line in
+                    Text(line)
+                        .font(.system(.caption, design: .monospaced))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+            }
+        }
     }
 }

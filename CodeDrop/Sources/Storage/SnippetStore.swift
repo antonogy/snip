@@ -238,7 +238,6 @@ struct SnippetStore: Sendable {
                 throw StorageError.snippetLimitReached(Limits.maxActiveSnippets)
             }
             let editorID = UUID()
-            let title = try nextTitle(for: language, in: db)
             let doc = EditorDocument(
                 id: editorID,
                 contentFilePath: ContentStore.fileName(for: editorID),
@@ -249,7 +248,7 @@ struct SnippetStore: Sendable {
             )
             let snippet = Snippet(
                 id: UUID(),
-                title: title,
+                title: "",
                 titleSource: .automatic,
                 mainEditor: doc,
                 isPinned: false,
@@ -505,14 +504,14 @@ struct SnippetStore: Sendable {
 
     // MARK: - Language
 
-    /// Updates the main editor's language and detection mode. When `regenerateTitle`
-    /// is set and the title is still automatic, the title is recomputed from the new
-    /// language (FR-2). Returns the re-hydrated snippet.
+    /// Updates the main editor's language and detection mode. The title is no
+    /// longer derived from the language — the sidebar shows a content preview and
+    /// the title tracks the first content line (see `setSnippetTitle`). Returns
+    /// the re-hydrated snippet.
     func setMainEditorLanguage(
         snippetId: UUID,
         language: CodeLanguage,
         mode: LanguageMode,
-        regenerateTitle: Bool,
         now: Date = Date()
     ) throws -> Snippet {
         try database.write { db in
@@ -524,15 +523,23 @@ struct SnippetStore: Sendable {
                     "UPDATE editor_documents SET language = ?, language_mode = ?, updated_at = ? WHERE id = ?",
                 arguments: [language.rawValue, mode.rawValue, now, sr.mainEditorId]
             )
-            if regenerateTitle, sr.titleSource == SnippetTitleSource.automatic.rawValue {
-                let title = try nextTitle(for: language, excluding: snippetId, in: db)
-                try db.execute(
-                    sql: "UPDATE snippets SET title = ?, updated_at = ? WHERE id = ?",
-                    arguments: [title, now, snippetId.uuidString]
-                )
-            }
             let refreshed = try SnippetRecord.fetchOne(db, key: snippetId.uuidString)!
             return try hydrate(refreshed, db)!
+        }
+    }
+
+    /// Sets the snippet's title to its first content line (FR-2 Smart Titles). The
+    /// title is retained only as the single-line label shown in Recovery; the
+    /// sidebar renders a live multi-line preview instead. A no-op when unchanged.
+    func setSnippetTitle(id: UUID, title: String, now: Date = Date()) throws {
+        try database.write { db in
+            guard let sr = try SnippetRecord.fetchOne(db, key: id.uuidString), sr.title != title else {
+                return
+            }
+            try db.execute(
+                sql: "UPDATE snippets SET title = ? WHERE id = ?",
+                arguments: [title, id.uuidString]
+            )
         }
     }
 
@@ -586,28 +593,9 @@ struct SnippetStore: Sendable {
         return try records.compactMap { try hydrate($0, db) }
     }
 
-    /// Generates the next auto-title for the given language.
-    /// Counts existing non-deleted snippets whose title starts with the language display name,
-    /// optionally skipping one snippet (used when retitling that snippet in place).
-    private func nextTitle(
-        for language: CodeLanguage,
-        excluding excludedId: UUID? = nil,
-        in db: Database
-    ) throws -> String {
-        let base = language.displayName
-        let count =
-            try Int.fetchOne(
-                db,
-                sql: "SELECT COUNT(*) FROM snippets WHERE title LIKE ? AND deleted_at IS NULL AND id != ?",
-                arguments: ["\(base) %", excludedId?.uuidString ?? ""]
-            ) ?? 0
-        return "\(base) \(count + 1)"
-    }
-
     private func insertDefaultSnippet(_ db: Database) throws -> Snippet {
         let now = Date()
         let editorID = UUID()
-        let title = try nextTitle(for: .plainText, in: db)
         let doc = EditorDocument(
             id: editorID,
             contentFilePath: ContentStore.fileName(for: editorID),
@@ -616,7 +604,7 @@ struct SnippetStore: Sendable {
         )
         let snippet = Snippet(
             id: UUID(),
-            title: title,
+            title: "",
             mainEditor: doc,
             createdAt: now,
             updatedAt: now

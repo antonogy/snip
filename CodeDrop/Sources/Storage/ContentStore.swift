@@ -29,6 +29,18 @@ public struct ContentStore: Sendable {
         return try String(contentsOf: url, encoding: .utf8)
     }
 
+    /// Reads only the first `maxBytes` of the file, decoded leniently as UTF-8,
+    /// returning "" when the file does not exist. Used for the sidebar content
+    /// preview so a multi-MB snippet never loads in full just to show 3 lines.
+    public func readHead(relativePath: String, maxBytes: Int = 1024) throws -> String {
+        let url = url(forRelativePath: relativePath)
+        guard FileManager.default.fileExists(atPath: url.path) else { return "" }
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        let data = try handle.read(upToCount: maxBytes) ?? Data()
+        return String(decoding: data, as: UTF8.self)
+    }
+
     /// Atomically writes content to the file at `relativePath`.
     public func write(_ content: String, relativePath: String) throws {
         let url = url(forRelativePath: relativePath)

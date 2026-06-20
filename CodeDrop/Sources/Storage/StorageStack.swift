@@ -169,6 +169,12 @@ public final class StorageStack: Sendable {
         try content.read(relativePath: doc.contentFilePath)
     }
 
+    /// Reads only the head of an editor document's content, for the sidebar
+    /// preview (FR-2 Smart Titles). Never loads a large file in full.
+    public func loadContentHead(for doc: EditorDocument, maxBytes: Int = 1024) throws -> String {
+        try content.readHead(relativePath: doc.contentFilePath, maxBytes: maxBytes)
+    }
+
     // MARK: - Split editor
 
     /// Adds a split editor to the snippet (or re-orients an existing one). A newly
@@ -192,15 +198,20 @@ public final class StorageStack: Sendable {
 
     // MARK: - Language
 
-    /// Sets the main editor's language and detection mode, regenerating the
-    /// automatic title to match. Returns the updated snippet.
+    /// Sets the main editor's language and detection mode. Returns the updated
+    /// snippet. Does not touch the title (FR-2 Smart Titles — see `setSnippetTitle`).
     public func setMainLanguage(
         snippetId: UUID,
         language: CodeLanguage,
         mode: LanguageMode
     ) throws -> Snippet {
-        try snippets.setMainEditorLanguage(
-            snippetId: snippetId, language: language, mode: mode, regenerateTitle: true)
+        try snippets.setMainEditorLanguage(snippetId: snippetId, language: language, mode: mode)
+    }
+
+    /// Updates the snippet's single-line title (its first content line) used as
+    /// the Recovery label (FR-2 Smart Titles).
+    public func setSnippetTitle(id: UUID, title: String) throws {
+        try snippets.setSnippetTitle(id: id, title: title)
     }
 
     /// Sets the split editor's language and detection mode (independent of the

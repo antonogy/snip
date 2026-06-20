@@ -680,7 +680,6 @@ Enforce Product Principles.
 ## Approved Future Items
 
 * iCloud Sync
-* Smart Titles (performance permitting)
 * Contextual Subtle Actions
 * Command Palette (deferred from Milestone 9 — small command set makes it
   overabundant for now; reachable via menus and shortcuts)
