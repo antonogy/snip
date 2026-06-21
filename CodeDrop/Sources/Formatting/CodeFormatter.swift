@@ -19,7 +19,8 @@ public struct CodeFormatter: Sendable {
     /// silently unavailable.
     public func supports(_ language: CodeLanguage) -> Bool {
         switch language {
-        case .swift, .javascript, .typescript, .json, .css, .html:
+        case .swift, .javascript, .typescript, .json, .css, .html,
+            .markdown, .yaml, .php, .graphql, .flow, .vue, .angular:
             return true
         case .sql, .python, .bash, .plainText:
             return false
@@ -32,7 +33,8 @@ public struct CodeFormatter: Sendable {
         switch language {
         case .swift:
             return try formatSwift(text)
-        case .javascript, .typescript, .json, .css, .html:
+        case .javascript, .typescript, .json, .css, .html,
+            .markdown, .yaml, .php, .graphql, .flow, .vue, .angular:
             return try PrettierFormatting.format(text, language: language)
         case .sql, .python, .bash, .plainText:
             throw FormatterError.unsupportedLanguage(language)

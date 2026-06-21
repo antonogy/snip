@@ -1,9 +1,13 @@
 import Foundation
 import Prettier
 import PrettierBabel
+import PrettierGraphQL
 import PrettierHTML
+import PrettierMarkdown
+import PrettierPHP
 import PrettierPostCSS
 import PrettierTypeScript
+import PrettierYAML
 import SharedModels
 
 /// In-process formatting for the Prettier-backed languages (JavaScript,
@@ -59,6 +63,25 @@ enum PrettierFormatting {
         case .html:
             // HTML embeds CSS and JS, so it needs the PostCSS and Babel plugins too.
             return ([HTMLPlugin(), PostCSSPlugin(), BabelPlugin()], HTMLParser())
+        case .markdown:
+            return ([MarkdownPlugin()], MarkdownParser())
+        case .yaml:
+            return ([YAMLPlugin()], YAMLParser())
+        case .php:
+            return ([PHPPlugin()], PHPParser())
+        case .graphql:
+            return ([GraphQLPlugin()], GraphQLParser())
+        case .flow:
+            // Flow is parsed by Babel's Flow-aware parser, which lives in the
+            // Babel plugin (the standalone Flow plugin exposes a different parser
+            // name that this build of Prettier does not return a string for).
+            return ([BabelPlugin()], BabelFlowParser())
+        case .vue:
+            // Vue single-file components embed CSS and JS like HTML.
+            return ([HTMLPlugin(), PostCSSPlugin(), BabelPlugin()], VueParser())
+        case .angular:
+            // Angular templates embed CSS and JS like HTML.
+            return ([HTMLPlugin(), PostCSSPlugin(), BabelPlugin()], AngularParser())
         case .sql, .python, .bash, .swift, .plainText:
             return nil
         }

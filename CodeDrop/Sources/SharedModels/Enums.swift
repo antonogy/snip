@@ -11,6 +11,13 @@ public enum CodeLanguage: String, Codable, CaseIterable, Sendable, Hashable {
     case swift
     case python
     case bash
+    case markdown
+    case yaml
+    case php
+    case graphql
+    case flow
+    case vue
+    case angular
     case plainText
 
     public var displayName: String {
@@ -24,6 +31,13 @@ public enum CodeLanguage: String, Codable, CaseIterable, Sendable, Hashable {
         case .swift: return "Swift"
         case .python: return "Python"
         case .bash: return "Bash"
+        case .markdown: return "Markdown"
+        case .yaml: return "YAML"
+        case .php: return "PHP"
+        case .graphql: return "GraphQL"
+        case .flow: return "Flow"
+        case .vue: return "Vue"
+        case .angular: return "Angular"
         case .plainText: return "Plain Text"
         }
     }

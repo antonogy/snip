@@ -57,7 +57,8 @@ public enum LanguageDetector {
     /// that, on a tie, plain JS wins — TypeScript only overtakes it when a
     /// TS-exclusive signal (types, `interface`, …) pushes its score strictly higher.
     private static let scoredLanguages: [CodeLanguage] = [
-        .html, .css, .sql, .swift, .python, .bash, .javascript, .typescript,
+        .html, .css, .sql, .swift, .python, .bash, .php, .graphql, .markdown, .yaml,
+        .javascript, .typescript,
     ]
 
     private static func scoreOf(_ language: CodeLanguage, in text: String) -> Int {
@@ -68,9 +69,16 @@ public enum LanguageDetector {
         case .swift: return swiftScore(text)
         case .python: return pythonScore(text)
         case .bash: return bashScore(text)
+        case .php: return phpScore(text)
+        case .graphql: return graphQLScore(text)
+        case .markdown: return markdownScore(text)
+        case .yaml: return yamlScore(text)
         case .typescript: return typeScriptScore(text)
         case .javascript: return javaScriptScore(text)
-        case .json, .plainText: return 0
+        // Flow/Vue/Angular are JS-like or template dialects with no reliable,
+        // low-false-positive structural signature, so they are never auto-detected;
+        // the user selects them manually. JSON is confirmed separately above.
+        case .flow, .vue, .angular, .json, .plainText: return 0
         }
     }
 
@@ -153,6 +161,43 @@ public enum LanguageDetector {
         if contains(#"=>\s*[{(]?"#, in: text) { score += 1 }
         if contains(#"\b(require\s*\(|module\.exports|export\s+(default|const|function))"#, in: text) { score += 2 }
         if contains(#"\b(console\.(log|error|warn)|document\.|window\.)"#, in: text) { score += 1 }
+        return score
+    }
+
+    private static func phpScore(_ text: String) -> Int {
+        var score = 0
+        if contains(#"<\?php\b"#, in: text) { score += 4 }
+        if contains(#"<\?="#, in: text) { score += 2 }
+        score += count(#"\$\w+"#, in: text)  // variables
+        if contains(#"->\w"#, in: text) { score += 1 }
+        if contains(#"\b(echo|function|namespace|use|public|private|protected)\b"#, in: text) { score += 1 }
+        return score
+    }
+
+    private static func graphQLScore(_ text: String) -> Int {
+        var score = 0
+        if contains(#"(?m)^\s*(type|input|enum|interface|scalar|union|schema)\s+\w+"#, in: text) { score += 2 }
+        if contains(#"(?m)^\s*(query|mutation|subscription)\b"#, in: text) { score += 2 }
+        score += count(#"(?m)^\s*\w+(\([^)]*\))?\s*:\s*\[?\w+!?\]?!?\s*$"#, in: text)  // field: Type
+        if contains(#"\b__typename\b"#, in: text) { score += 1 }
+        return score
+    }
+
+    private static func markdownScore(_ text: String) -> Int {
+        var score = 0
+        score += count(#"(?m)^#{1,6}\s+\S"#, in: text) * 2  // ATX headings
+        score += count(#"(?m)^\s*```"#, in: text) * 2  // fenced code blocks
+        score += count(#"(?m)^\s*[-*+]\s+\S"#, in: text)  // bullet lists
+        score += count(#"\[[^\]]+\]\([^)]+\)"#, in: text)  // links
+        if contains(#"(?m)^>\s+\S"#, in: text) { score += 1 }  // blockquotes
+        return score
+    }
+
+    private static func yamlScore(_ text: String) -> Int {
+        var score = 0
+        if contains(#"(?m)^---\s*$"#, in: text) { score += 2 }  // document start
+        score += count(#"(?m)^[ \t]*[\w.-]+:\s(\S|$)"#, in: text)  // key: value (space, no ;)
+        score += count(#"(?m)^[ \t]*-\s+\S"#, in: text)  // sequence items
         return score
     }
 

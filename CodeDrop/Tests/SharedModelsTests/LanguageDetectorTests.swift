@@ -138,4 +138,59 @@ struct LanguageDetectorTests {
             """
         #expect(LanguageDetector.detect(text) == .javascript)
     }
+
+    @Test("Detects PHP")
+    func detectsPHP() {
+        let text = """
+            <?php
+            $name = "Snip";
+            function greet() {
+                return $name;
+            }
+            echo greet();
+            """
+        #expect(LanguageDetector.detect(text) == .php)
+    }
+
+    @Test("Detects GraphQL")
+    func detectsGraphQL() {
+        let text = """
+            type User {
+              id: ID!
+              name: String!
+            }
+
+            type Query {
+              user(id: ID!): User
+            }
+            """
+        #expect(LanguageDetector.detect(text) == .graphql)
+    }
+
+    @Test("Detects YAML")
+    func detectsYAML() {
+        let text = """
+            name: Snip
+            version: 1
+            tags:
+              - a
+              - b
+            nested:
+              key: value
+            """
+        #expect(LanguageDetector.detect(text) == .yaml)
+    }
+
+    @Test("Detects Markdown")
+    func detectsMarkdown() {
+        let text = """
+            # Title
+
+            Some text with **bold** and a [link](https://example.com).
+
+            - item one
+            - item two
+            """
+        #expect(LanguageDetector.detect(text) == .markdown)
+    }
 }

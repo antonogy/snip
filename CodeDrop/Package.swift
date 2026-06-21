@@ -28,6 +28,10 @@ let package = Package(
         .package(url: "https://github.com/tree-sitter/tree-sitter-bash.git", branch: "master"),
         .package(url: "https://github.com/alex-pinkus/tree-sitter-swift.git", branch: "with-generated-files"),
         .package(url: "https://github.com/DerekStride/tree-sitter-sql.git", branch: "gh-pages"),
+        .package(url: "https://github.com/tree-sitter/tree-sitter-php.git", branch: "master"),
+        .package(url: "https://github.com/tree-sitter-grammars/tree-sitter-yaml.git", branch: "master"),
+        .package(url: "https://github.com/tree-sitter-grammars/tree-sitter-markdown.git", branch: "split_parser"),
+        .package(url: "https://github.com/dlvandenberg/tree-sitter-angular.git", branch: "main"),
     ],
     targets: [
         // Pure domain models. No dependencies — every other module may depend on it.
@@ -46,8 +50,8 @@ let package = Package(
             ]
         ),
 
-        // Vendored external scanners for the javascript, css, and python grammar
-        // packages. Their SPM manifests gate `scanner.c` behind a
+        // Vendored external scanners for the javascript, css, python, and yaml
+        // grammar packages. Their SPM manifests gate `scanner.c` behind a
         // `FileManager.fileExists("src/scanner.c")` check that evaluates against
         // the wrong directory under SwiftPM, silently dropping the scanner and
         // leaving `tree_sitter_<lang>_external_scanner_*` undefined at link time.
@@ -72,6 +76,7 @@ let package = Package(
                 "SharedModels",
                 "CTreeSitterScanners",
                 .product(name: "SwiftTreeSitter", package: "SwiftTreeSitter"),
+                .product(name: "SwiftTreeSitterLayer", package: "SwiftTreeSitter"),
                 .product(name: "TreeSitterJavaScript", package: "tree-sitter-javascript"),
                 .product(name: "TreeSitterTypeScript", package: "tree-sitter-typescript"),
                 .product(name: "TreeSitterJSON", package: "tree-sitter-json"),
@@ -81,6 +86,14 @@ let package = Package(
                 .product(name: "TreeSitterBash", package: "tree-sitter-bash"),
                 .product(name: "TreeSitterSwift", package: "tree-sitter-swift"),
                 .product(name: "TreeSitterSql", package: "tree-sitter-sql"),
+                .product(name: "TreeSitterPHP", package: "tree-sitter-php"),
+                .product(name: "TreeSitterYAML", package: "tree-sitter-yaml"),
+                // The TreeSitterMarkdown product bundles both the block grammar
+                // (TreeSitterMarkdown) and the inline grammar
+                // (TreeSitterMarkdownInline) targets; depending on the product
+                // makes both modules importable.
+                .product(name: "TreeSitterMarkdown", package: "tree-sitter-markdown"),
+                .product(name: "TreeSitterAngular", package: "tree-sitter-angular"),
             ],
             resources: [
                 .copy("Resources/TreeSitter")
@@ -100,6 +113,10 @@ let package = Package(
                 .product(name: "PrettierTypeScript", package: "Prettier"),
                 .product(name: "PrettierPostCSS", package: "Prettier"),
                 .product(name: "PrettierHTML", package: "Prettier"),
+                .product(name: "PrettierMarkdown", package: "Prettier"),
+                .product(name: "PrettierYAML", package: "Prettier"),
+                .product(name: "PrettierPHP", package: "Prettier"),
+                .product(name: "PrettierGraphQL", package: "Prettier"),
             ]
         ),
 

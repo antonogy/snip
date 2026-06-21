@@ -219,7 +219,25 @@ Supported languages:
 * Swift
 * Python
 * Bash
+* Markdown
+* YAML
+* PHP
+* GraphQL
+* Flow
+* Vue
+* Angular
 * Plain Text
+
+Auto-detected: JavaScript, TypeScript, JSON, HTML, CSS, SQL, Swift, Python,
+Bash, Markdown, YAML, PHP, GraphQL. Flow, Vue, and Angular are selected
+manually only — they are JS-like or template dialects with no reliable
+auto-detection signature.
+
+Syntax highlighting covers every language above except GraphQL and Vue, which
+are format-only (no tree-sitter grammar ships for them); their text stays
+uncolored but Format Code still works. Flow reuses the JavaScript grammar.
+Markdown, HTML, and Angular additionally highlight embedded languages (fenced
+code blocks, `<script>`/`<style>`) via tree-sitter injection.
 
 Detection runs:
 
@@ -303,6 +321,13 @@ Supported:
 * JSON → Prettier (bundled, in-process)
 * HTML → Prettier (bundled, in-process)
 * CSS → Prettier (bundled, in-process)
+* Markdown → Prettier (bundled, in-process)
+* YAML → Prettier (bundled, in-process)
+* PHP → Prettier (bundled, in-process)
+* GraphQL → Prettier (bundled, in-process)
+* Flow → Prettier (bundled, in-process)
+* Vue → Prettier (bundled, in-process)
+* Angular → Prettier (bundled, in-process)
 * Swift → swift-format (bundled, in-process)
 
 Not formattable (no built-in formatter):
@@ -879,7 +904,8 @@ Extend formatting beyond the current built-in, in-process formatters (FR-7):
 
 * implement formatters for SQL, Python, and Bash
 * native implementation of the Prettier formatter
-* add formatting support for YAML, GraphQL, Markdown, and Flow
+* add syntax highlighting for GraphQL and Vue (no tree-sitter grammar ships for
+  them yet; they are currently format-only)
 
 ---
 

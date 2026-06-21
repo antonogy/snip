@@ -20,7 +20,8 @@ public enum HighlightToken: String, Sendable, Equatable, CaseIterable {
     /// (so `@function.method` and `@function.builtin` both become `.function`).
     /// Anything we don't recognize falls back to `.plain`.
     public init(capture: String) {
-        let root = capture.split(separator: ".").first.map(String.init) ?? capture
+        let components = capture.split(separator: ".").map(String.init)
+        let root = components.first ?? capture
         switch root {
         case "keyword", "conditional", "repeat", "include", "import",
             "storageclass", "namespace", "label", "preproc",
@@ -40,6 +41,21 @@ public enum HighlightToken: String, Sendable, Equatable, CaseIterable {
             self = .constant
         case "property", "field", "attribute":
             self = .property
+        // Prose markup (Markdown headings, emphasis, code, links). These grammars
+        // use `text.*` / `markup.*` capture names with no analogue in code, so the
+        // sub-kind picks a reasonable color: headings/emphasis read as keywords,
+        // inline code as strings, link URLs as constants, link text as properties.
+        case "text", "markup":
+            switch components.count > 1 ? components[1] : "" {
+            case "literal", "raw", "code":
+                self = .string
+            case "uri", "link", "url":
+                self = .constant
+            case "reference":
+                self = .property
+            default:
+                self = .keyword
+            }
         default:
             self = .plain
         }

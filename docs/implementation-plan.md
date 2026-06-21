@@ -168,17 +168,28 @@ Purpose:
 
 ### Tree-sitter grammars
 
-Initial languages:
+Languages:
 
 * JavaScript
 * TypeScript
 * JSON
-* HTML
+* HTML (with injected JS/CSS)
 * CSS
 * SQL
 * Swift
 * Python
 * Bash
+* Markdown (block + inline grammars, with injected fenced-code languages)
+* YAML
+* PHP
+* Angular
+
+Flow reuses the JavaScript grammar. GraphQL and Vue are format-only (no
+SwiftPM tree-sitter grammar) and are not highlighted. Nested-language
+highlighting uses `SwiftTreeSitterLayer`; some grammar packages ship external
+scanners that their SPM manifests drop, so those scanners (YAML, Angular,
+alongside JavaScript/CSS/Python) are vendored in the `CTreeSitterScanners`
+target.
 
 ---
 
@@ -686,7 +697,8 @@ Enforce Product Principles.
 * Formatting enhancements:
   * formatters for SQL, Python, and Bash
   * native implementation of the Prettier formatter
-  * formatting support for YAML, GraphQL, Markdown, and Flow
+* Syntax highlighting for GraphQL and Vue (currently format-only — no SwiftPM
+  tree-sitter grammar)
 
 ## Explicitly Rejected
 

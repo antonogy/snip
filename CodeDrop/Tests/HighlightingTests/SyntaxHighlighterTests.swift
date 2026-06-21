@@ -9,18 +9,31 @@ struct SyntaxHighlighterTests {
 
     // MARK: - Grammar wiring
 
-    @Test("Every supported language loads a grammar and compiles its query")
+    /// GraphQL and Vue are format-only: no tree-sitter grammar ships for them via
+    /// SwiftPM, so they intentionally do not highlight.
+    static let formatOnly: Set<CodeLanguage> = [.graphql, .vue]
+
+    @Test("Every highlightable language loads a grammar and compiles its query")
     func everyLanguageLoads() throws {
-        for language in CodeLanguage.allCases where language != .plainText {
+        for language in CodeLanguage.allCases
+        where language != .plainText && !Self.formatOnly.contains(language) {
             let query = try Grammar.compiledQuery(for: language)
             #expect(query != nil, "\(language) failed to load a grammar/query")
         }
     }
 
-    @Test("Plain text has no grammar")
-    func plainTextHasNoGrammar() throws {
-        #expect(Grammar.language(for: .plainText) == nil)
-        #expect(try Grammar.compiledQuery(for: .plainText) == nil)
+    @Test("Languages without a grammar have none")
+    func noGrammarLanguagesHaveNone() throws {
+        for language in Self.formatOnly.union([.plainText]) {
+            #expect(Grammar.language(for: language) == nil)
+            #expect(try Grammar.compiledQuery(for: language) == nil)
+        }
+    }
+
+    @Test("Flow reuses the JavaScript grammar")
+    func flowReusesJavaScript() throws {
+        #expect(Grammar.language(for: .flow) != nil)
+        #expect(try Grammar.compiledQuery(for: .flow) != nil)
     }
 
     // MARK: - Highlighting behavior
@@ -89,6 +102,27 @@ struct SyntaxHighlighterTests {
                 comment: "-- find users",
                 string: nil
             ),
+            Sample(
+                language: .php,
+                source: "<?php\n// greet\nfunction greet() {\n  $name = \"Snip\";\n}",
+                keyword: "function",
+                comment: "// greet",
+                string: "\"Snip\""
+            ),
+            Sample(
+                language: .yaml,
+                source: "# config\nname: \"Snip\"\ncount: 42",
+                keyword: nil,
+                comment: "# config",
+                string: "\"Snip\""
+            ),
+            Sample(
+                language: .flow,
+                source: "// typed greeting\nfunction greet(): void {\n  const x = \"hi\";\n}",
+                keyword: "function",
+                comment: "// typed greeting",
+                string: "\"hi\""
+            ),
         ]
     )
     func languageHighlights(sample: Sample) async {
@@ -129,6 +163,57 @@ struct SyntaxHighlighterTests {
         let spans = await highlight(source, as: .html)
         #expect(!spans.isEmpty)
         #expect(token(at: offset("<!-- page -->", source), in: spans) == .comment)
+    }
+
+    @Test("Markdown highlights its structure")
+    func markdownHighlights() async {
+        let source = "# Title\n\nSome **bold** text and a [link](https://x).\n"
+        let spans = await highlight(source, as: .markdown)
+        #expect(!spans.isEmpty, "markdown produced no spans")
+    }
+
+    @Test("Angular template highlights")
+    func angularHighlights() async {
+        let source = "<div>{{ title }}</div>\n<button (click)=\"save()\">Go</button>"
+        let spans = await highlight(source, as: .angular)
+        #expect(!spans.isEmpty, "angular produced no spans")
+    }
+
+    @Test("GraphQL and Vue do not highlight (format-only)")
+    func formatOnlyLanguagesProduceNoSpans() async {
+        let gql = await highlight("type Query { user: User }", as: .graphql)
+        #expect(gql.isEmpty)
+        let vue = await highlight("<template><p>{{ x }}</p></template>", as: .vue)
+        #expect(vue.isEmpty)
+    }
+
+    @Test("Markdown injects highlighting into fenced code blocks")
+    func markdownInjectsFencedCode() async {
+        // The Swift `let`/`func` keywords live only inside the fenced block; if
+        // they are highlighted, the JavaScriptCore-free injection path is working.
+        let source = """
+            # Example
+
+            ```swift
+            let answer = 42
+            ```
+            """
+        let spans = await highlight(source, as: .markdown)
+        #expect(
+            token(at: offset("let", source), in: spans) == .keyword,
+            "expected the injected Swift `let` inside the fence to highlight"
+        )
+    }
+
+    @Test("HTML injects highlighting into embedded style and script")
+    func htmlInjectsEmbeddedLanguages() async {
+        let source = "<style>.a { color: #fff; }</style><script>const x = 1;</script>"
+        let spans = await highlight(source, as: .html)
+        // `const` is a JS keyword that only appears inside the <script> block.
+        #expect(
+            token(at: offset("const", source), in: spans) == .keyword,
+            "expected injected JavaScript inside <script> to highlight"
+        )
     }
 
     @Test(
@@ -180,7 +265,10 @@ struct SyntaxHighlighterTests {
             from: haystack.utf16.startIndex, to: range.lowerBound.samePosition(in: haystack.utf16)!)
     }
 
+    /// The token the editor actually shows at `index`: spans are ordered
+    /// widest-first and applied last-wins, so the visible color is the last
+    /// (narrowest, deepest) span covering the index.
     private func token(at index: Int, in spans: [HighlightSpan]) -> HighlightToken? {
-        spans.first { NSLocationInRange(index, $0.range) }?.token
+        spans.last { NSLocationInRange(index, $0.range) }?.token
     }
 }
