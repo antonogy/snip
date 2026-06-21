@@ -387,6 +387,7 @@ Supported:
 * word wrap
 * current line highlight
 * in-editor find (scoped to a single editor — see FR-19)
+* cursor position indicator (see FR-19)
 
 Not supported:
 
@@ -523,6 +524,10 @@ The toolbar provides:
   editors at once; availability is gated per FR-7
 * **Language switcher** — shows the current language and allows manual
   selection; manual selection disables auto detection per FR-14
+
+Each editor also has a **bottom status bar** showing the current cursor position
+(`Line: <n>  Col: <n>`), right-aligned. It updates live on every cursor move or
+selection change and is independent per editor in a split.
 
 Scope:
 

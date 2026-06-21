@@ -30,6 +30,8 @@ struct CodeDropEditorView: NSViewRepresentable {
     /// Called when an edit (paste, drag-in, typing) is rejected for exceeding the
     /// content-size limit, so the pane can surface a non-modal hint (FR-21).
     var onContentLimitExceeded: () -> Void = {}
+    /// Called whenever the cursor moves or selection changes with (line, column).
+    var onCursorMove: (Int, Int) -> Void = { _, _ in }
     /// Whether this editor claims keyboard focus when installed. Only the main
     /// editor does, so opening a split snippet keeps the cursor in the main editor.
     var autoFocusOnInstall: Bool = true
@@ -207,6 +209,19 @@ struct CodeDropEditorView: NSViewRepresentable {
                 guard resulting > SharedModels.Limits.maxEditorCharacters else { return true }
                 parent.onContentLimitExceeded()
                 return false
+            }
+        }
+
+        nonisolated func textViewDidChangeSelection(_ notification: Notification) {
+            MainActor.assumeIsolated {
+                guard let tv = textView else { return }
+                let nsStr = tv.string as NSString
+                let loc = min(tv.selectedRange().location, nsStr.length)
+                let before = nsStr.substring(to: loc)
+                let lines = before.components(separatedBy: "\n")
+                let line = lines.count
+                let col = (lines.last?.count ?? 0) + 1
+                parent.onCursorMove(line, col)
             }
         }
 

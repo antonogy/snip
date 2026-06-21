@@ -441,6 +441,7 @@ Per-editor and top-level toolbars, plus safety limits.
 
 * per-editor toolbar (FR-19): in-editor search, language switcher (FR-14);
   Format Code is in the top toolbar, not per-editor
+* bottom status bar — live cursor position (`Line: <n>  Col: <n>`) per editor
 * top toolbar (FR-20):
   * centre slot — Pin/Unpin, Format Code (formats all editors, gated per FR-7),
     Delete
@@ -452,6 +453,7 @@ Per-editor and top-level toolbars, plus safety limits.
 ## Deliverables
 
 * editor toolbar component, with independent state per editor / split
+* bottom status bar component (`EditorStatusBar`), one per editor pane, independent in split
 * in-editor find (NSTextFinder / TextKit-backed), scoped to a single editor
 * top toolbar wiring to pin, format-all, delete, and split commands
 * sidebar New CodeDroppet button with cap enforcement and non-modal hint at limit
